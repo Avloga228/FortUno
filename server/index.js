@@ -1,26 +1,50 @@
 const express = require('express');
-const path = require('path');
+const http = require('http');
 const cors = require('cors');
+const path = require('path');
+const { Server } = require('socket.io');
 
 const app = express();
-const PORT = 5000;
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // на час розробки, для продакшну краще вказати конкретний домен
+    methods: ["GET", "POST"]
+  }
+});
 
-// Дозволяємо CORS для фронтенду (на час розробки)
-app.use(cors());
+const PORT = 5000;
 
 // Видаємо статичні файли React (після білду)
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// API (можна додати пізніше)
-app.get('/api/hello', (req, res) => {
-  res.json({ message: 'Привіт із бекенду!' });
+let buttonState = [false, false]; // false - зелена, true - червона
+
+io.on('connection', (socket) => {
+  socket.emit('update', buttonState);
+
+  socket.on('press', (index) => {
+    buttonState[index] = true;
+    io.emit('update', buttonState);
+
+    // Через 3 секунди скидаємо стан кнопки
+    setTimeout(() => {
+      buttonState[index] = false;
+      io.emit('update', buttonState);
+    }, 3000);
+  });
+
+  socket.on('reset', () => {
+    buttonState = [false, false];
+    io.emit('update', buttonState);
+  });
 });
 
-// Всі інші запити — повертаємо index.html (SPA)
-app.use((req, res, next) => {
+// SPA fallback
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Сервер запущено на http://localhost:${PORT}`);
 });
