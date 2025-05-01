@@ -31,3 +31,13 @@
 ```cmd
 git clone https://github.com/your-username/fortuno.git
 cd fortuno
+```
+
+## ⚙️ Як заносити зміни в репозиторій?
+
+### 1. Клонування репозиторію
+```cmd
+git add .
+git commit -m "Назва коміту"
+git push -u origin main
+```
