@@ -1,0 +1,228 @@
+/* RoomPage.css */
+.game-bg {
+    min-height: 100vh;
+    min-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at 50% 30%, #43cea2 0%, #185a9d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  .game-container {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background: rgba(255,255,255,0.95);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+  
+  .header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+    padding: 18px 32px 0 32px;
+    box-sizing: border-box;
+  }
+  
+  .room-id {
+    color: #ff6f61;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  
+  .players-count {
+    background: #ffb88c;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px #ffecd2aa;
+  }
+  
+  .game-table {
+    flex: 1;
+    position: relative;
+    border: 3px solid #ffb88c;
+    border-radius: 20px;
+    margin: 0 32px 32px 32px;
+    background: linear-gradient(135deg, #fffbe6 0%, #ffe0c3 100%);
+    min-width: 0;
+    min-height: 0;
+    width: calc(100vw - 64px);
+    height: calc(100vh - 110px);
+    max-width: 1200px;
+    max-height: 700px;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+  
+  .central-area {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 40px;
+    z-index: 2;
+  }
+  
+  .deck, .discard-pile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .deck-label {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: #888;
+    font-weight: 500;
+  }
+  
+  .card {
+    width: 80px;
+    height: 120px;
+    border-radius: 14px;
+    border: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: bold;
+    background: #fff;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  
+  .card.red {
+    background: linear-gradient(135deg, #ff6f61 0%, #ffb88c 100%);
+    color: #fff;
+    border: 2px solid #ff6f61;
+  }
+  
+  .card.back {
+    background: repeating-linear-gradient(
+      135deg,
+      #185a9d,
+      #43cea2 10px,
+      #185a9d 20px
+    );
+    color: #fff;
+    font-size: 2rem;
+    border: 2px solid #185a9d;
+  }
+  
+  .card.playable:hover {
+    transform: translateY(-10px) scale(1.08);
+    box-shadow: 0 8px 32px 0 #ffb88c55;
+  }
+  
+  .opponent {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1;
+    min-width: 70px;
+  }
+  
+  .opponent-top { 
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .opponent-left {
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .opponent-right {
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  
+  .player-avatar {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+  }
+  
+  .player-name {
+    font-size: 1rem;
+    color: #185a9d;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  
+  .cards-stack {
+    background: #ffecd2;
+    color: #ff6f61;
+    padding: 4px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  
+  .current-player {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: 95%;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hand {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 0;
+    margin-bottom: 0;
+  }
+  
+  .player-label {
+    margin-top: 4px;
+    font-size: 1rem;
+    color: #185a9d;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  /* Адаптивність для маленьких екранів */
+  @media (max-width: 900px), (max-height: 700px) {
+    .game-table {
+      max-width: 98vw;
+      max-height: 60vh;
+      min-width: 0;
+      min-height: 0;
+    }
+    .card {
+      width: 60px;
+      height: 90px;
+      font-size: 1.1rem;
+    }
+    .hand {
+      gap: 6px;
+    }
+  }
