@@ -33,6 +33,19 @@ git clone https://github.com/Avloga228/FortUno.git
 cd fortuno
 ```
 
+## ⚙️ Як запустити програму?
+
+```cmd
+cd client
+npm run dev
+```
+
+```cmd
+cd server
+npm install -g nodemon (один раз)
+nodemon index.js
+```
+
 ## ⚙️ Як заносити зміни в репозиторій?
 
 ```cmd
