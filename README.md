@@ -37,13 +37,13 @@ cd fortuno
 
 ### 1. Запустити MongoDB Compass
 
-### 1. Запустити фронтенд
+### 2. Запустити фронтенд
 ```cmd
 cd client
 npm run dev
 ```
 
-### 1. Запустити бекенд
+### 3. Запустити бекенд
 ```cmd
 cd server
 npm install -g nodemon (один раз)
