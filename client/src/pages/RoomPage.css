@@ -36,6 +36,10 @@
     box-sizing: border-box;
   }
   
+  h1 {
+    color: #222; /* Темний колір для заголовка */
+  }
+
   .room-id {
     color: #ff6f61;
     font-weight: bold;
@@ -107,24 +111,40 @@
     transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
     box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    color: #222; /* Темний текст для білих карт */
+    background: #fff;
   }
   
   .card.red {
     background: linear-gradient(135deg, #ff6f61 0%, #ffb88c 100%);
-    color: #fff;
+    color: #fff; /* Білий текст на червоному */
     border: 2px solid #ff6f61;
   }
   
-  .card.back {
-    background: repeating-linear-gradient(
-      135deg,
-      #185a9d,
-      #43cea2 10px,
-      #185a9d 20px
-    );
+  .card.yellow {
+    background: linear-gradient(135deg, #ffe066 0%, #ffd700 100%);
+    color: #222;
+    border: 2px solid #ffd700;
+  }
+  .card.green {
+    background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
     color: #fff;
-    font-size: 2rem;
+    border: 2px solid #43cea2;
+  }
+  .card.blue {
+    background: linear-gradient(135deg, #185a9d 0%, #43cea2 100%);
+    color: #fff;
     border: 2px solid #185a9d;
+  }
+  .card.purple {
+    background: linear-gradient(135deg, #a259c4 0%, #6a0572 100%);
+    color: #fff;
+    border: 2px solid #a259c4;
+  }
+  .card.black {
+    background: linear-gradient(135deg, #222 0%, #444 100%);
+    color: #fff;
+    border: 2px solid #222;
   }
   
   .card.playable:hover {

@@ -1,0 +1,15 @@
+.color-picker-svg {
+    display: block;
+    margin: 0 auto;
+    user-select: none;
+  }
+  
+  .color-sector {
+    transition: filter 0.2s, opacity 0.2s;
+    opacity: 0.92;
+    cursor: pointer;
+  }
+  .color-sector:hover {
+    filter: brightness(1.25) drop-shadow(0 0 12px #0004);
+    opacity: 1;
+  }
