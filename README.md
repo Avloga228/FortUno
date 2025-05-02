@@ -35,11 +35,15 @@ cd fortuno
 
 ## ⚙️ Як запустити програму?
 
+### 1. Запустити MongoDB Compass
+
+### 1. Запустити фронтенд
 ```cmd
 cd client
 npm run dev
 ```
 
+### 1. Запустити бекенд
 ```cmd
 cd server
 npm install -g nodemon (один раз)
