@@ -29,7 +29,7 @@
 
 ### 1. Клонування репозиторію
 ```cmd
-git clone https://github.com/your-username/fortuno.git
+git clone https://github.com/Avloga228/FortUno.git
 cd fortuno
 ```
 
