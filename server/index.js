@@ -171,7 +171,7 @@ io.on('connection', (socket) => {
   
     // Якщо карта +3 або +5 — дати наступному гравцю відповідну кількість карт
     if (card.value === "+3 карти" || card.value === "+5 карт") {
-      const count = card.value === "+3 карти" ? 3 : 5;
+      const count = card.value === "+3 картини" ? 3 : 5;
       const nextIndex = getNextPlayerIndex(state);
       const nextPlayerId = playerIds[nextIndex];
       for (let i = 0; i < count; i++) {
@@ -241,6 +241,38 @@ io.on('connection', (socket) => {
     state.currentPlayerIndex = getNextPlayerIndex(state);
     io.to(roomId).emit('turnChanged', {
       currentPlayerId: playerIds[state.currentPlayerIndex]
+    });
+  });
+
+  // Видача потрібної карти гравцю (DEV)
+  socket.on('devGiveCard', ({ roomId, value, color }) => {
+    const state = gameStates[roomId];
+    if (!state) return;
+    // Гнучкий пошук карти у колоді
+    const cardIdx = state.deck.findIndex(
+      c =>
+        c.color === color &&
+        (
+          (value.includes('+3') && String(c.value).includes('+3')) ||
+          (value.includes('+5') && String(c.value).includes('+5')) ||
+          (value.toLowerCase().includes('форт') && String(c.value).toLowerCase().includes('форт')) ||
+          (value.toLowerCase().includes('пропуск') && String(c.value).toLowerCase().includes('пропуск')) ||
+          (value.toLowerCase().includes('оберт') && String(c.value).toLowerCase().includes('оберт')) ||
+          (c.value === value)
+        )
+    );
+    if (cardIdx === -1) {
+      // Якщо такої карти немає в колоді — нічого не робимо
+      return;
+    }
+    const card = state.deck.splice(cardIdx, 1)[0];
+    // Додати карту у руку гравця
+    if (!state.hands[socket.id]) state.hands[socket.id] = [];
+    state.hands[socket.id].push(card);
+    // Оновити руку гравця
+    io.to(socket.id).emit('updateHandAndDiscard', {
+      hand: state.hands[socket.id],
+      discardTop: state.discardPile[state.discardPile.length - 1]
     });
   });
 

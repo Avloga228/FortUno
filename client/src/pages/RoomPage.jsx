@@ -102,8 +102,53 @@ export default function RoomPage() {
     return `card playable ${colorClass}`;
   };
 
+  // Додаю функцію для отримання шляху до зображення картки
+  const getCardImage = (card) => {
+    if (!card) return null;
+    let value = String(card.value).toLowerCase();
+    // Українські назви для спеціальних карт
+    if (value === 'обертання ходу') value = 'reverse';
+    if (value === 'пропуск ходу') value = 'skip';
+    if (value === '+3 карти') value = 'plus_3';
+    if (value === '+5 карт') value = 'plus_5';
+    if (value === 'фортуно') value = 'fortuno';
+    // Для спеціальних карток (англійські варіанти)
+    if (value === '+3' || value === 'plus_3') value = 'plus_3';
+    if (value === '+5' || value === 'plus_5') value = 'plus_5';
+    if (value === 'wild' || value === 'fortuno') value = 'fortuno';
+    if (value === 'skip') value = 'skip';
+    if (value === 'reverse') value = 'reverse';
+    if (
+      card && card.color === 'black' &&
+      !['фортуно', 'fortuno', 'plus_5', '+5', '+5 карт'].includes(String(card.value).toLowerCase())
+    ) {
+      console.log('DEBUG +3 VALUE:', card.value, card);
+    }
+    return `/img/${card.color}/card_${card.color}_${value}.webp`;
+  };
+
+  // Dev-панель для видачі карт
+  const devCards = [
+    { value: 'ФортУно', color: 'black' },
+    { value: '+3 карти', color: 'black' },
+    { value: '+5 карт', color: 'black' },
+    { value: 'Пропуск ходу', color: 'red' },
+    { value: 'Обертання ходу', color: 'red' },
+    ...[1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), color: 'red' }))
+  ];
+  const handleDevGiveCard = (card) => {
+    socket.emit('devGiveCard', { roomId, value: card.value, color: card.color });
+  };
+
   return (
     <div className="game-bg">
+      <div className="dev-panel">
+        {devCards.map((card, idx) => (
+          <button key={idx} onClick={() => handleDevGiveCard(card)}>
+            {card.value}
+          </button>
+        ))}
+      </div>
       <div className="game-container">
         <div className="header">
           <h1>
@@ -137,8 +182,54 @@ export default function RoomPage() {
               <div className="deck-label">Колода</div>
             </div>
             <div className="discard-pile">
-              <div className={getCardClass(currentCard)}>
-                {currentCard ? `${currentCard.value} (${currentCard.color})` : ""}
+              <div
+                className={getCardClass(currentCard)}
+              >
+                {currentCard ? (
+                  <img
+                    src={getCardImage(currentCard)}
+                    alt={`${currentCard.value} ${currentCard.color}`}
+                    style={{
+                      width: 80,
+                      height: 120,
+                      objectFit: 'contain',
+                      outline:
+                        (() => {
+                          const val = String(currentCard.value).toLowerCase().trim();
+                          const match = [
+                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 карти', '3', '3 карти',
+                            'plus_5', '+5', '+5 карт'
+                          ].includes(val);
+                          if (match && currentCard.chosenColor) {
+                            console.log('OBVODKA DEBUG:', val, currentCard);
+                            return `4px solid ${
+                              currentCard.chosenColor === 'red' ? '#ff6f61' :
+                              currentCard.chosenColor === 'yellow' ? '#ffe066' :
+                              currentCard.chosenColor === 'green' ? '#43cea2' :
+                              currentCard.chosenColor === 'blue' ? '#185a9d' :
+                              currentCard.chosenColor === 'purple' ? '#a259c4' :
+                              '#000'
+                            }`;
+                          }
+                          return undefined;
+                        })(),
+                      outlineOffset:
+                        (() => {
+                          const val = String(currentCard.value).toLowerCase().trim();
+                          const match = [
+                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 карти', '3', '3 карти',
+                            'plus_5', '+5', '+5 карт'
+                          ].includes(val);
+                          if (match && currentCard.chosenColor) {
+                            return '2px';
+                          }
+                          return undefined;
+                        })(),
+                      borderRadius: '12px',
+                    }}
+                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
+                  />
+                ) : ""}
               </div>
               <div className="deck-label">Скидання</div>
             </div>
@@ -153,12 +244,36 @@ export default function RoomPage() {
                   className={getCardClass(card)}
                   onClick={() => handlePlayCard(card)}
                   style={{
-                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed",
-                    opacity: currentPlayerId === socket.id ? 1 : 0.6
+                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed"
                   }}
                   title={currentPlayerId === socket.id ? "Викласти карту" : "Зачекайте свого ходу"}
                 >
-                  {card.value} ({card.color})
+                  <img
+                    src={getCardImage(card)}
+                    alt={`${card.value} ${card.color}`}
+                    style={{
+                      width: 80,
+                      height: 120,
+                      objectFit: 'contain',
+                      outline:
+                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
+                          ? `4px solid ${
+                              card.chosenColor === 'red' ? '#ff6f61' :
+                              card.chosenColor === 'yellow' ? '#ffe066' :
+                              card.chosenColor === 'green' ? '#43cea2' :
+                              card.chosenColor === 'blue' ? '#185a9d' :
+                              card.chosenColor === 'purple' ? '#a259c4' :
+                              '#000'
+                            }`
+                          : undefined,
+                      outlineOffset:
+                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
+                          ? '2px'
+                          : undefined,
+                      borderRadius: '12px',
+                    }}
+                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
+                  />
                 </div>
               ))}
             </div>

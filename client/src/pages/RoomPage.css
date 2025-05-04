@@ -246,3 +246,52 @@
       gap: 6px;
     }
   }
+
+  .card.fortuno-colored-red {
+    outline: 4px solid #ff6f61 !important;
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+  .card.fortuno-colored-yellow {
+    outline: 4px solid #ffe066 !important;
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+  .card.fortuno-colored-green {
+    outline: 4px solid #43cea2 !important;
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+  .card.fortuno-colored-blue {
+    outline: 4px solid #185a9d !important;
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+  .card.fortuno-colored-purple {
+    outline: 4px solid #a259c4 !important;
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+
+  .dev-panel {
+    position: fixed;
+    top: 80px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+  }
+  .dev-panel button {
+    padding: 4px 10px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background: #fffbe6;
+    color: #222;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .dev-panel button:hover {
+    background: #ffe066;
+  }
