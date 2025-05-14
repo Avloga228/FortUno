@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { socket } from "../socket";
 import ColorPicker from "../components/ColorPicker";
+import DiceRoller from "../components/DiceRoller";
 import "./RoomPage.css";
 
 export default function RoomPage() {
@@ -13,6 +14,11 @@ export default function RoomPage() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingBlackCard, setPendingBlackCard] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [showDiceRoller, setShowDiceRoller] = useState(false);
+  const [chooseCardToDiscard, setChooseCardToDiscard] = useState(false);
+  const [actionBlockedMessage, setActionBlockedMessage] = useState("");
+  const [diceResult, setDiceResult] = useState(null);
+  const [turnSkippedMessage, setTurnSkippedMessage] = useState("");
 
   useEffect(() => {
     socket.emit('joinRoom', roomId);
@@ -36,12 +42,53 @@ export default function RoomPage() {
       // При зміні ходу ховаємо пікер, якщо він був відкритий
       setShowColorPicker(false);
       setPendingBlackCard(null);
+      // Ховаємо будь-які повідомлення про блокування
+      setActionBlockedMessage("");
     });
 
     socket.on('gameStarted', ({ discardTop, players }) => {
       setCurrentCard(discardTop);
       setPlayers(players);
       setGameStarted(true); // Гра почалася — вимикаємо кнопку
+    });
+
+    // Додаємо обробник події кидання кубика Фортуно
+    socket.on('fortunoDiceRolled', ({ diceResult, playerId }) => {
+      // Зберігаємо результат кубика
+      setDiceResult(diceResult);
+      // Показуємо кубик усім гравцям
+      setShowDiceRoller(true);
+    });
+
+    // Додаємо обробник події вибору картини для скидання
+    socket.on('chooseCardToDiscard', () => {
+      setChooseCardToDiscard(true);
+    });
+
+    // Обробник блокування дій
+    socket.on('actionBlocked', ({ message }) => {
+      setActionBlockedMessage(message);
+      
+      // Автоматично ховаємо повідомлення через 3 секунди
+      setTimeout(() => {
+        setActionBlockedMessage("");
+      }, 3000);
+    });
+
+    // Обробник пропуску ходу
+    socket.on('turnSkipped', ({ skippedPlayerId, currentPlayerId }) => {
+      // Показуємо повідомлення про пропуск ходу
+      const isCurrentUser = skippedPlayerId === socket.id;
+      const message = isCurrentUser 
+        ? "Ви пропускаєте свій хід через карту Фортуно" 
+        : "Гравець пропускає свій хід через карту Фортуно";
+      
+      setTurnSkippedMessage(message);
+      
+      // Ховаємо повідомлення через 3 секунди
+      setTimeout(() => {
+        setTurnSkippedMessage("");
+      }, 3000);
     });
 
     return () => {
@@ -51,6 +98,10 @@ export default function RoomPage() {
       socket.off('updateHandAndDiscard');
       socket.off('turnChanged');
       socket.off('gameStarted');
+      socket.off('fortunoDiceRolled');
+      socket.off('chooseCardToDiscard');
+      socket.off('actionBlocked');
+      socket.off('turnSkipped');
     };
   }, [roomId]);
 
@@ -63,6 +114,7 @@ export default function RoomPage() {
   // Клік по картці для викладання
   const handlePlayCard = (card) => {
     if (currentPlayerId !== socket.id) return;
+    
     if (card.color === "black") {
       setShowColorPicker(true);
       setPendingBlackCard(card);
@@ -71,12 +123,35 @@ export default function RoomPage() {
     }
   };
 
-  // Вибір кольору для чорної карти
+  // Вибір кольору для чорної картини
   const handleColorPick = (color) => {
     setShowColorPicker(false);
     if (pendingBlackCard) {
       socket.emit('playCard', { roomId, card: { ...pendingBlackCard, chosenColor: color } });
       setPendingBlackCard(null);
+    }
+  };
+
+  // Обробка результату кидання кубика
+  const handleDiceResult = (result) => {
+    // Не закриваємо модальне вікно одразу
+    // Компонент сам ховає результат через 5 секунд (див. DiceRoller.jsx)
+    // і викликає callback, після чого ми закриваємо модальне вікно
+    setTimeout(() => {
+      setShowDiceRoller(false);
+    }, 5000); // Закриваємо модальне вікно через 5 секунд після завершення анімації
+  };
+
+  // Обробка завершення анімації кубика - повідомляємо сервер
+  const handleDiceFinished = (result) => {
+    socket.emit('fortunoDiceFinished', { roomId });
+  };
+
+  // Вибір картини для скидання
+  const handleDiscardCard = (index) => {
+    if (chooseCardToDiscard && currentPlayerId === socket.id) {
+      socket.emit('discardCard', { roomId, cardIndex: index });
+      setChooseCardToDiscard(false);
     }
   };
 
@@ -109,7 +184,7 @@ export default function RoomPage() {
     // Українські назви для спеціальних карт
     if (value === 'обертання ходу') value = 'reverse';
     if (value === 'пропуск ходу') value = 'skip';
-    if (value === '+3 карти') value = 'plus_3';
+    if (value === '+3 картини') value = 'plus_3';
     if (value === '+5 карт') value = 'plus_5';
     if (value === 'фортуно') value = 'fortuno';
     // Для спеціальних карток (англійські варіанти)
@@ -130,7 +205,7 @@ export default function RoomPage() {
   // Dev-панель для видачі карт
   const devCards = [
     { value: 'ФортУно', color: 'black' },
-    { value: '+3 карти', color: 'black' },
+    { value: '+3 картини', color: 'black' },
     { value: '+5 карт', color: 'black' },
     { value: 'Пропуск ходу', color: 'red' },
     { value: 'Обертання ходу', color: 'red' },
@@ -161,6 +236,16 @@ export default function RoomPage() {
               : <span style={{ color: "red" }}>Хід суперника</span>
             }
           </div>
+          {actionBlockedMessage && (
+            <div className="action-blocked-message" style={{ color: "red", fontWeight: "bold" }}>
+              {actionBlockedMessage}
+            </div>
+          )}
+          {turnSkippedMessage && (
+            <div className="turn-skipped-message" style={{ color: "orange", fontWeight: "bold" }}>
+              {turnSkippedMessage}
+            </div>
+          )}
           <button 
             onClick={handleStartGame} 
             disabled={gameStarted || players.length < 2}
@@ -197,7 +282,7 @@ export default function RoomPage() {
                         (() => {
                           const val = String(currentCard.value).toLowerCase().trim();
                           const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 карти', '3', '3 карти',
+                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
                             'plus_5', '+5', '+5 карт'
                           ].includes(val);
                           if (match && currentCard.chosenColor) {
@@ -217,7 +302,7 @@ export default function RoomPage() {
                         (() => {
                           const val = String(currentCard.value).toLowerCase().trim();
                           const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 карти', '3', '3 карти',
+                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
                             'plus_5', '+5', '+5 карт'
                           ].includes(val);
                           if (match && currentCard.chosenColor) {
@@ -242,11 +327,16 @@ export default function RoomPage() {
                 <div
                   key={index}
                   className={getCardClass(card)}
-                  onClick={() => handlePlayCard(card)}
+                  onClick={() => chooseCardToDiscard ? handleDiscardCard(index) : handlePlayCard(card)}
                   style={{
-                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed"
+                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed",
+                    border: chooseCardToDiscard && currentPlayerId === socket.id ? "3px dashed red" : undefined
                   }}
-                  title={currentPlayerId === socket.id ? "Викласти карту" : "Зачекайте свого ходу"}
+                  title={
+                    chooseCardToDiscard && currentPlayerId === socket.id 
+                    ? "Виберіть карту для скидання" 
+                    : currentPlayerId === socket.id ? "Викласти карту" : "Зачекайте свого ходу"
+                  }
                 >
                   <img
                     src={getCardImage(card)}
@@ -277,11 +367,15 @@ export default function RoomPage() {
                 </div>
               ))}
             </div>
-            <div className="player-label">Ваша рука</div>
+            <div className="player-label">
+              {chooseCardToDiscard && currentPlayerId === socket.id 
+                ? "Виберіть карту для скидання" 
+                : "Ваша рука"}
+            </div>
           </div>
         </div>
 
-        {/* Модальне вікно вибору кольору для чорної карти */}
+        {/* Модальне вікно вибору кольору для чорної картини */}
         {showColorPicker && (
           <div className="color-picker-modal" style={{
             position: "fixed",
@@ -293,6 +387,25 @@ export default function RoomPage() {
             zIndex: 1000
           }}>
             <ColorPicker onPick={handleColorPick} />
+          </div>
+        )}
+
+        {/* Модальне вікно з кубиком для карти Фортуно */}
+        {showDiceRoller && (
+          <div className="dice-roller-modal" style={{
+            position: "fixed",
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000
+          }}>
+            <DiceRoller 
+              onResult={handleDiceResult} 
+              serverDiceResult={diceResult} 
+              onFinished={handleDiceFinished} 
+            />
           </div>
         )}
       </div>
