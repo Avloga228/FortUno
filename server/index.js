@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
 
     // Генеруємо та тасуємо колоду
     let deck = shuffleDeck(generateDeck());
-    // Роздаємо карти гравцям
+    // Роздаємо картини гравцям
     const { hands, deck: newDeck } = dealCards(deck, room.players);
 
     // Вибираємо першу карту для скидання
@@ -132,7 +132,7 @@ io.on('connection', (socket) => {
     return (state.currentPlayerIndex + state.direction + n) % n;
   }
 
-  // Викладання карти
+  // Викладання картини
   socket.on('playCard', ({ roomId, card }) => {
     const state = gameStates[roomId];
     if (!state) return;
@@ -145,14 +145,14 @@ io.on('connection', (socket) => {
     const cardIndex = hand.findIndex(
       c => c.value === card.value && c.color === card.color
     );
-    if (cardIndex === -1) return; // Немає такої карти
+    if (cardIndex === -1) return; // Немає такої картини
   
     // Перевірка правил (спрощено)
     const top = state.discardPile[state.discardPile.length - 1];
     let canPlay = false;
 
     if (top.color === "black" && top.chosenColor) {
-      // Після чорної карти дозволяється класти лише обраний колір або чорну
+      // Після чорної картини дозволяється класти лише обраний колір або чорну
       canPlay = (card.color === top.chosenColor) || (card.color === "black");
     } else {
       canPlay =
@@ -165,60 +165,146 @@ io.on('connection', (socket) => {
   
     // Видаляємо карту з руки
     hand.splice(cardIndex, 1);
-  
-    // Додаємо карту у скидання
-    state.discardPile.push(card);
-  
-    // Якщо карта +3 або +5 — дати наступному гравцю відповідну кількість карт
-    if (card.value === "+3 карти" || card.value === "+5 карт") {
-      const count = card.value === "+3 картини" ? 3 : 5;
-      const nextIndex = getNextPlayerIndex(state);
-      const nextPlayerId = playerIds[nextIndex];
-      for (let i = 0; i < count; i++) {
-        if (state.deck.length > 0) {
-          state.hands[nextPlayerId].push(state.deck.shift());
-        }
-      }
-      io.to(nextPlayerId).emit('updateHandAndDiscard', {
-        hand: state.hands[nextPlayerId],
-        discardTop: card
+    
+    // Перевіряємо чи це карта Фортуно
+    if (card.value === "ФортУно" && card.chosenColor) {
+      // Додаємо карту у скидання
+      state.discardPile.push(card);
+      
+      // Блокуємо ходи інших гравців під час дії Фортуно
+      state.fortunoPending = true;
+      state.fortunoPlayerId = socket.id;
+      
+      // Виконуємо кидок кубика для Фортуно - гарантуємо рівні шанси
+      const diceResult = Math.floor(Math.random() * 6) + 1;
+      card.diceResult = diceResult;
+      
+      // Повідомляємо всіх про кидок кубика з однаковим результатом
+      // Ефект буде застосовано після отримання події fortunoDiceFinished від клієнта
+      io.to(roomId).emit('fortunoDiceRolled', { 
+        diceResult,
+        playerId: socket.id
       });
-      // Хід переходить до опонента (наступного гравця)
-      state.currentPlayerIndex = nextIndex;
-    } else if (card.value === "Пропуск ходу") {
-      // Пропустити наступного гравця
-      const n = playerIds.length;
-      state.currentPlayerIndex = (state.currentPlayerIndex + 2 * state.direction + n) % n;
-    } else if (card.value === "Обертання ходу") {
-      const n = playerIds.length;
-      if (n === 2) {
-        // Для двох гравців — як пропуск ходу (гравець ходить ще раз)
-        state.currentPlayerIndex = (state.currentPlayerIndex + 2 * state.direction + n) % n;
-      } else {
-        // Для 3+ гравців — змінюємо напрямок
-        state.direction *= -1;
-        // Після зміни напрямку хід переходить до наступного у новому напрямку
-        state.currentPlayerIndex = (state.currentPlayerIndex + state.direction + n) % n;
-      }
+      
+      // Не застосовуємо ефект одразу, а зберігаємо його для застосування після анімації кубика
+      state.pendingFortunoEffect = diceResult;
     } else {
-      // Передати хід наступному
-      state.currentPlayerIndex = getNextPlayerIndex(state);
+      // Блокуємо хід, якщо очікується дія Фортуно
+      if (state.fortunoPending && socket.id !== state.fortunoPlayerId) {
+        // Повертаємо карту гравцю
+        hand.push(card);
+        // Повідомляємо гравця, що хід заблоковано
+        io.to(socket.id).emit('actionBlocked', { message: 'Очікується завершення дії Фортуно' });
+        return;
+      }
+      
+      // Для всіх інших карт - звичайна логіка
+      state.discardPile.push(card);
+    
+      // Якщо карта +3 або +5 — дати наступному гравцю відповідну кількість карт
+      if (card.value === "+3 картини" || card.value === "+5 карт") {
+        const count = card.value === "+3 картини" ? 3 : 5;
+        const nextIndex = getNextPlayerIndex(state);
+        const nextPlayerId = playerIds[nextIndex];
+        for (let i = 0; i < count; i++) {
+          if (state.deck.length > 0) {
+            state.hands[nextPlayerId].push(state.deck.shift());
+          }
+        }
+        io.to(nextPlayerId).emit('updateHandAndDiscard', {
+          hand: state.hands[nextPlayerId],
+          discardTop: card
+        });
+        // Хід переходить до опонента (наступного гравця)
+        state.currentPlayerIndex = nextIndex;
+      } else if (card.value === "Пропуск ходу") {
+        // Пропустити наступного гравця
+        const n = playerIds.length;
+        state.currentPlayerIndex = (state.currentPlayerIndex + 2 * state.direction + n) % n;
+      } else if (card.value === "Обертання ходу") {
+        const n = playerIds.length;
+        if (n === 2) {
+          // Для двох гравців — як пропуск ходу (гравець ходить ще раз)
+          state.currentPlayerIndex = (state.currentPlayerIndex + 2 * state.direction + n) % n;
+        } else {
+          // Для 3+ гравців — змінюємо напрямок
+          state.direction *= -1;
+          // Після зміни напрямку хід переходить до наступного у новому напрямку
+          state.currentPlayerIndex = (state.currentPlayerIndex + state.direction + n) % n;
+        }
+      } else {
+        // Передати хід наступному
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+      }
+      
+      // Оновити руки всім гравцям
+      for (const playerId in state.hands) {
+        io.to(playerId).emit('updateHandAndDiscard', {
+          hand: state.hands[playerId],
+          discardTop: card
+        });
+      }
+      
+      // Перевіряємо, чи наступний гравець повинен пропустити хід
+      const nextPlayerIndex = state.currentPlayerIndex;
+      const nextPlayerId = playerIds[nextPlayerIndex];
+      
+      if (state.skipNextTurn === nextPlayerId) {
+        // Цей гравець має пропустити хід, переходимо до наступного
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Видаляємо статус пропуску ходу
+        delete state.skipNextTurn;
+        
+        // Повідомляємо всіх про пропуск ходу
+        io.to(roomId).emit('turnSkipped', { 
+          skippedPlayerId: nextPlayerId,
+          currentPlayerId: playerIds[state.currentPlayerIndex]
+        });
+      }
+      
+      // Оновити хід
+      io.to(roomId).emit('turnChanged', {
+        currentPlayerId: playerIds[state.currentPlayerIndex]
+      });
     }
-
+  });
+  
+  // Обробка вибору карти для скидання (для випадку 4 на кубику Фортуно)
+  socket.on('discardCard', ({ roomId, cardIndex }) => {
+    const state = gameStates[roomId];
+    if (!state) return;
+    if (!state.fortunoPending || socket.id !== state.fortunoPlayerId) return;
+    
+    const playerIds = Object.keys(state.hands);
+    const hand = state.hands[socket.id];
+    
+    if (cardIndex < 0 || cardIndex >= hand.length) return;
+    
+    // Видаляємо обрану карту та додаємо її у ПОЧАТОК відбою (внизу стопки)
+    const cardToDiscard = hand.splice(cardIndex, 1)[0];
+    state.discardPile.unshift(cardToDiscard);
+    
+    // Передаємо хід наступному гравцю
+    state.currentPlayerIndex = getNextPlayerIndex(state);
+    
+    // Розблоковуємо гру після завершення дії
+    state.fortunoPending = false;
+    
     // Оновити руки всім гравцям
     for (const playerId in state.hands) {
       io.to(playerId).emit('updateHandAndDiscard', {
         hand: state.hands[playerId],
-        discardTop: card
+        discardTop: state.discardPile[state.discardPile.length - 1]
       });
     }
+    
     // Оновити хід
     io.to(roomId).emit('turnChanged', {
       currentPlayerId: playerIds[state.currentPlayerIndex]
     });
   });
   
-  // Додаємо подію для взяття карти з колоди
+  // Додаємо подію для взяття картини з колоди
   socket.on('drawCard', ({ roomId }) => {
     const state = gameStates[roomId];
     if (!state) return;
@@ -239,16 +325,33 @@ io.on('connection', (socket) => {
 
     // Передати хід наступному
     state.currentPlayerIndex = getNextPlayerIndex(state);
+    
+    // Перевіряємо, чи наступний гравець повинен пропустити хід
+    const nextPlayerId = playerIds[state.currentPlayerIndex];
+    
+    if (state.skipNextTurn === nextPlayerId) {
+      // Цей гравець має пропустити хід, переходимо до наступного
+      state.currentPlayerIndex = getNextPlayerIndex(state);
+      // Видаляємо статус пропуску ходу
+      delete state.skipNextTurn;
+      
+      // Повідомляємо всіх про пропуск ходу
+      io.to(roomId).emit('turnSkipped', { 
+        skippedPlayerId: nextPlayerId,
+        currentPlayerId: playerIds[state.currentPlayerIndex]
+      });
+    }
+    
     io.to(roomId).emit('turnChanged', {
       currentPlayerId: playerIds[state.currentPlayerIndex]
     });
   });
 
-  // Видача потрібної карти гравцю (DEV)
+  // Видача потрібної картини гравцю (DEV)
   socket.on('devGiveCard', ({ roomId, value, color }) => {
     const state = gameStates[roomId];
     if (!state) return;
-    // Гнучкий пошук карти у колоді
+    // Гнучкий пошук картини у колоді
     const cardIdx = state.deck.findIndex(
       c =>
         c.color === color &&
@@ -262,7 +365,7 @@ io.on('connection', (socket) => {
         )
     );
     if (cardIdx === -1) {
-      // Якщо такої карти немає в колоді — нічого не робимо
+      // Якщо такої картини немає в колоді — нічого не робимо
       return;
     }
     const card = state.deck.splice(cardIdx, 1)[0];
@@ -318,6 +421,133 @@ io.on('connection', (socket) => {
       }
     } catch (err) {
       console.error('Помилка disconnect:', err);
+    }
+  });
+
+  // Додаємо обробник події завершення анімації кубика
+  socket.on('fortunoDiceFinished', ({ roomId }) => {
+    const state = gameStates[roomId];
+    if (!state || !state.fortunoPending || !state.pendingFortunoEffect) return;
+    
+    const playerIds = Object.keys(state.hands);
+    const diceResult = state.pendingFortunoEffect;
+    
+    // Застосовуємо ефект картки залежно від результату кубика
+    switch (diceResult) {
+      case 1: // +1 карта та пропуск ходу
+        // Додаємо 1 карту гравцю, який виклав Фортуно
+        if (state.deck.length > 0) {
+          state.hands[state.fortunoPlayerId].push(state.deck.shift());
+        }
+        // Пропуск ходу - переходимо до наступного гравця
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Розблоковуємо гру після завершення дії
+        state.fortunoPending = false;
+        break;
+        
+      case 2: // +3 картини та пропуск ходу
+        // Додаємо 3 картини гравцю, який виклав Фортуно
+        for (let i = 0; i < 3; i++) {
+          if (state.deck.length > 0) {
+            state.hands[state.fortunoPlayerId].push(state.deck.shift());
+          }
+        }
+        // Пропуск ходу - переходимо до наступного гравця
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Розблоковуємо гру після завершення дії
+        state.fortunoPending = false;
+        break;
+        
+      case 3: // Обмін картами з усіма гравцями по часовій стрілці та пропуск ходу
+        // Зберігаємо копію рук
+        const hands = {...state.hands};
+        // Отримуємо порядковий номер поточного гравця
+        const currentIndex = playerIds.indexOf(state.fortunoPlayerId);
+        // Обмінюємо картини
+        for (let i = 0; i < playerIds.length; i++) {
+          const fromPlayerId = playerIds[i];
+          const toIndex = (i + 1) % playerIds.length;
+          const toPlayerId = playerIds[toIndex];
+          state.hands[toPlayerId] = hands[fromPlayerId];
+        }
+        // Пропуск ходу - переходимо до наступного гравця
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Розблоковуємо гру після завершення дії
+        state.fortunoPending = false;
+        break;
+        
+      case 4: // -1 карта та пропуск ходу
+        // Блокуємо гру до вибору карти
+        // Розблокування в обробнику події discardCard
+        
+        // Повідомляємо гравця, що йому потрібно обрати карту для скидання
+        io.to(state.fortunoPlayerId).emit('chooseCardToDiscard');
+        
+        // Хід переходить до наступного після того, як гравець вибере карту
+        // (обробляється в іншій події - discardCard)
+        break;
+        
+      case 5: // Пропуск ходу тому, хто виклав карту Фортуно
+        // Просто пропускаємо хід
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        
+        // Додаємо статус, що цей гравець має пропустити свій наступний хід
+        state.skipNextTurn = state.fortunoPlayerId;
+        
+        // Розблоковуємо гру після завершення дії
+        state.fortunoPending = false;
+        break;
+        
+      case 6: // Гравець забирає карту назад та пропускає хід
+        // Повертаємо карту Фортуно гравцю
+        const fortunoCard = state.discardPile.pop();
+        // Видаляємо результат кидка і обраний колір для повторного використання
+        delete fortunoCard.diceResult;
+        delete fortunoCard.chosenColor;
+        state.hands[state.fortunoPlayerId].push(fortunoCard);
+        
+        // Пропуск ходу - переходимо до наступного гравця
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Розблоковуємо гру після завершення дії
+        state.fortunoPending = false;
+        break;
+    }
+    
+    // Видаляємо очікуючий ефект
+    delete state.pendingFortunoEffect;
+    
+    // Оновлюємо руки всім гравцям
+    for (const playerId in state.hands) {
+      io.to(playerId).emit('updateHandAndDiscard', {
+        hand: state.hands[playerId],
+        discardTop: state.discardPile[state.discardPile.length - 1]
+      });
+    }
+    
+    // Якщо дія не вимагає очікування додаткового вибору (випадок 4)
+    if (diceResult !== 4) {
+      // Відправляємо оновлення ходу всім гравцям
+      const playerIds = Object.keys(state.hands);
+      const currentPlayerId = playerIds[state.currentPlayerIndex];
+      
+      // Перевіряємо, чи поточний гравець повинен пропустити хід
+      if (state.skipNextTurn === currentPlayerId) {
+        // Цей гравець має пропустити хід, переходимо до наступного
+        state.currentPlayerIndex = getNextPlayerIndex(state);
+        // Видаляємо статус пропуску ходу
+        delete state.skipNextTurn;
+        
+        // Повідомляємо всіх про пропуск ходу
+        io.to(roomId).emit('turnSkipped', { 
+          skippedPlayerId: currentPlayerId,
+          currentPlayerId: playerIds[state.currentPlayerIndex]
+        });
+      }
+      
+      // Оновити хід
+      io.to(roomId).emit('turnChanged', {
+        currentPlayerId: playerIds[state.currentPlayerIndex]
+      });
     }
   });
 });

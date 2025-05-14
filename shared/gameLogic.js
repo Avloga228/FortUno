@@ -4,7 +4,7 @@ const COLORS = ["red", "yellow", "green", "blue", "purple"];
 const BLACK = "black";
 const VALUES = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 const SPECIALS = ["Пропуск ходу", "Обертання ходу"];
-const BLACK_SPECIALS = ["+3 карти", "+5 карт", "ФортУно"];
+const BLACK_SPECIALS = ["+3 картини", "+5 карт", "ФортУно"];
 
 // Створити одну пару карт певного типу і кольору
 function createPair(value, color) {
@@ -14,7 +14,7 @@ function createPair(value, color) {
   ];
 }
 
-// Створити всі цифрові та спеціальні карти (крім чорних)
+// Створити всі цифрові та спеціальні картини (крім чорних)
 function createColoredCards() {
   let cards = [];
   for (const color of COLORS) {
@@ -28,11 +28,11 @@ function createColoredCards() {
   return cards;
 }
 
-// Створити чорні карти: +3, +5 (по 2 кожної), ФортУно (8 штук)
+// Створити чорні картини: +3, +5 (по 2 кожної), ФортУно (8 штук)
 function createBlackCards() {
   let cards = [];
   for (let i = 0; i < 2; i++) {
-    cards.push({ value: "+3 карти", color: BLACK });
+    cards.push({ value: "+3 картини", color: BLACK });
     cards.push({ value: "+5 карт", color: BLACK });
   }
   for (let i = 0; i < 8; i++) {
@@ -60,7 +60,7 @@ function shuffleDeck(deck) {
   return arr;
 }
 
-// Роздати карти гравцям (по 8 кожному), повертає { hands, deck }
+// Роздати картини гравцям (по 8 кожному), повертає { hands, deck }
 function dealCards(deck, playerIds) {
     const hands = {};
     let deckCopy = [...deck];
