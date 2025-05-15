@@ -50,10 +50,24 @@ app.get('/api/rooms/:roomId', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST']
-  }
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
 });
+
+// Допоміжна функція для відправки оновленого стану гравців всім у кімнаті
+function emitPlayersState(roomId) {
+  const state = gameStates[roomId];
+  if (!state) return;
+  const players = Object.keys(state.hands).map(pid => ({
+    id: pid,
+    name: pid,
+    handSize: state.hands[pid] ? state.hands[pid].length : 0
+  }));
+  io.to(roomId).emit('updatePlayers', { players });
+}
 
 // Обробка Socket.IO подій
 io.on('connection', (socket) => {
@@ -71,7 +85,16 @@ io.on('connection', (socket) => {
           console.log(`Гравець ${socket.id} приєднався до кімнати ${roomId}`);
         }
         socket.roomId = roomId;
-        io.to(roomId).emit('playerJoined', { players: room.players });
+        // Додаю handSize для кожного гравця, якщо гра вже стартувала
+        let playersList = room.players;
+        if (gameStates[roomId] && gameStates[roomId].hands) {
+          playersList = room.players.map(pid => ({
+            id: pid,
+            name: pid, // Можна замінити на справжнє ім'я, якщо є
+            handSize: gameStates[roomId].hands[pid] ? gameStates[roomId].hands[pid].length : 0
+          }));
+        }
+        io.to(roomId).emit('playerJoined', { players: playersList });
       }
     } catch (err) {
       console.error('Помилка приєднання до кімнати:', err);
@@ -94,9 +117,54 @@ io.on('connection', (socket) => {
     // Роздаємо картини гравцям
     const { hands, deck: newDeck } = dealCards(deck, room.players);
 
-    // Вибираємо першу карту для скидання
-    const discardPile = [newDeck[0]];
-    const deckAfterFirst = newDeck.slice(1);
+    // Вибираємо першу карту для скидання, що не є чорною або спеціальною
+    let discardTopCard;
+    let deckAfterFirst = [...newDeck]; // Створюємо копію колоди
+    
+    // Список спеціальних значень карт
+    const specialValues = [
+      "Пропуск ходу", 
+      "Обертання ходу", 
+      "+3 картини", 
+      "+5 карт", 
+      "ФортУно"
+    ];
+    
+    // Вибираємо першу звичайну карту (не чорну і не спеціальну)
+    do {
+      // Перевіряємо чи є ще картини
+      if (deckAfterFirst.length === 0) {
+        // Якщо немає, переміщаємо всі картини з кінця назад
+        console.warn("Не вдалося знайти звичайну карту, перемішуємо колоду");
+        deckAfterFirst = shuffleDeck(deckAfterFirst);
+        // Запобігаємо нескінченному циклу, якщо всі картини спеціальні
+        if (deckAfterFirst.length > 0) {
+          discardTopCard = deckAfterFirst.shift();
+          break;
+        }
+      }
+      
+      discardTopCard = deckAfterFirst.shift(); // Беремо першу карту
+      
+      // Перевіряємо чи карта чорна або спеціальна
+      const isBlackOrSpecial = 
+        discardTopCard.color === "black" || 
+        specialValues.includes(discardTopCard.value);
+      
+      // Якщо карта чорна або спеціальна, перекладаємо її в кінець колоди
+      if (isBlackOrSpecial) {
+        deckAfterFirst.push(discardTopCard);
+      }
+    } while (
+      (discardTopCard.color === "black" || 
+       specialValues.includes(discardTopCard.value)) && 
+      deckAfterFirst.length > 0
+    );
+    
+    console.log(`Перша карта: ${discardTopCard.color} ${discardTopCard.value}`);
+    
+    // Створюємо скид з першою картою
+    const discardPile = [discardTopCard];
 
     // Зберігаємо стан гри у пам'яті
     gameStates[roomId] = {
@@ -116,7 +184,11 @@ io.on('connection', (socket) => {
     }
     // Оновлюємо стан столу для всіх
     io.to(roomId).emit('gameStarted', {
-      players: room.players,
+      players: room.players.map(pid => ({
+        id: pid,
+        name: pid,
+        handSize: hands[pid] ? hands[pid].length : 0
+      })),
       discardTop: discardPile[0]
     });
     
@@ -245,6 +317,9 @@ io.on('connection', (socket) => {
         });
       }
       
+      // Оновлюємо інформацію про кількість карт у всіх гравців
+      emitPlayersState(roomId);
+      
       // Перевіряємо, чи наступний гравець повинен пропустити хід
       const nextPlayerIndex = state.currentPlayerIndex;
       const nextPlayerId = playerIds[nextPlayerIndex];
@@ -298,6 +373,9 @@ io.on('connection', (socket) => {
       });
     }
     
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
+    
     // Оновити хід
     io.to(roomId).emit('turnChanged', {
       currentPlayerId: playerIds[state.currentPlayerIndex]
@@ -322,6 +400,9 @@ io.on('connection', (socket) => {
       hand: state.hands[currentPlayerId],
       discardTop: state.discardPile[state.discardPile.length - 1]
     });
+
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
 
     // Передати хід наступному
     state.currentPlayerIndex = getNextPlayerIndex(state);
@@ -351,31 +432,116 @@ io.on('connection', (socket) => {
   socket.on('devGiveCard', ({ roomId, value, color }) => {
     const state = gameStates[roomId];
     if (!state) return;
-    // Гнучкий пошук картини у колоді
-    const cardIdx = state.deck.findIndex(
-      c =>
-        c.color === color &&
-        (
-          (value.includes('+3') && String(c.value).includes('+3')) ||
-          (value.includes('+5') && String(c.value).includes('+5')) ||
-          (value.toLowerCase().includes('форт') && String(c.value).toLowerCase().includes('форт')) ||
-          (value.toLowerCase().includes('пропуск') && String(c.value).toLowerCase().includes('пропуск')) ||
-          (value.toLowerCase().includes('оберт') && String(c.value).toLowerCase().includes('оберт')) ||
-          (c.value === value)
-        )
+    
+    // Нормалізуємо значення для пошуку
+    const normalizedValue = String(value).toLowerCase().trim();
+    
+    // Карта не знайдена в колоді
+    let foundCard = null;
+    
+    // Спочатку шукаємо точний збіг
+    const exactMatch = state.deck.findIndex(c => 
+      c.color === color && 
+      String(c.value).toLowerCase().trim() === normalizedValue
     );
-    if (cardIdx === -1) {
-      // Якщо такої картини немає в колоді — нічого не робимо
-      return;
+    
+    if (exactMatch !== -1) {
+      // Якщо знайшли точний збіг, беремо цю карту
+      foundCard = state.deck.splice(exactMatch, 1)[0];
+    } else {
+      // Якщо точного збігу немає, шукаємо частковий збіг
+      const cardMappings = {
+        'форт': ['фортуно', 'фортуна', 'wild'],
+        '+3': ['+3 картини', '+3картини', 'плюс3', 'плюс 3', 'plus3', 'plus 3'],
+        '+5': ['+5 карт', '+5карт', 'плюс5', 'плюс 5', 'plus5', 'plus 5'],
+        'пропуск': ['пропуск ходу', 'пропуск', 'skip'],
+        'оберт': ['обертання ходу', 'обертання', 'reverse']
+      };
+      
+      // Шукаємо в першу чергу за ключовими словами
+      for (const [key, variations] of Object.entries(cardMappings)) {
+        if (normalizedValue.includes(key) || variations.some(v => normalizedValue.includes(v))) {
+          const matchIdx = state.deck.findIndex(c => 
+            c.color === color && 
+            variations.some(v => String(c.value).toLowerCase().includes(v)) ||
+            String(c.value).toLowerCase().includes(key)
+          );
+          
+          if (matchIdx !== -1) {
+            foundCard = state.deck.splice(matchIdx, 1)[0];
+            break;
+          }
+        }
+      }
+      
+      // Якщо і після цього не знайшли, шукаємо будь-яку карту потрібного кольору
+      if (!foundCard) {
+        const colorMatchIdx = state.deck.findIndex(c => c.color === color);
+        if (colorMatchIdx !== -1) {
+          foundCard = state.deck.splice(colorMatchIdx, 1)[0];
+        }
+      }
     }
-    const card = state.deck.splice(cardIdx, 1)[0];
-    // Додати карту у руку гравця
-    if (!state.hands[socket.id]) state.hands[socket.id] = [];
-    state.hands[socket.id].push(card);
+    
+    // Якщо карту знайдено, додаємо її до руки гравця
+    if (foundCard) {
+      if (!state.hands[socket.id]) state.hands[socket.id] = [];
+      state.hands[socket.id].push(foundCard);
+      
+      console.log(`Видано карту ${foundCard.color} ${foundCard.value} гравцю ${socket.id}`);
+      
+      // Оновити руку гравця
+      io.to(socket.id).emit('updateHandAndDiscard', {
+        hand: state.hands[socket.id],
+        discardTop: state.discardPile[state.discardPile.length - 1]
+      });
+      
+      // Оновлюємо інформацію про кількість карт у всіх гравців
+      emitPlayersState(roomId);
+    } else {
+      console.warn(`Не вдалося знайти карту ${color} ${value} в колоді`);
+    }
+  });
+
+  // Розробницька функція: взяти кілька карт з колоди
+  socket.on('devDrawCards', ({ roomId, count }) => {
+    const state = gameStates[roomId];
+    if (!state) return;
+    
+    // Додаємо вказану кількість карт з колоди
+    for (let i = 0; i < count && state.deck.length > 0; i++) {
+      const card = state.deck.shift();
+      if (!state.hands[socket.id]) state.hands[socket.id] = [];
+      state.hands[socket.id].push(card);
+    }
+    
     // Оновити руку гравця
     io.to(socket.id).emit('updateHandAndDiscard', {
       hand: state.hands[socket.id],
       discardTop: state.discardPile[state.discardPile.length - 1]
+    });
+    
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
+  });
+  
+  // Розробницька функція: зробити хід поточного гравця
+  socket.on('devSetMyTurn', ({ roomId }) => {
+    const state = gameStates[roomId];
+    if (!state) return;
+    
+    // Знаходимо індекс поточного гравця
+    const playerIds = Object.keys(state.hands);
+    const currentIndex = playerIds.indexOf(socket.id);
+    
+    if (currentIndex === -1) return; // Гравець не знайдений
+    
+    // Встановлюємо поточний хід на цього гравця
+    state.currentPlayerIndex = currentIndex;
+    
+    // Оновлюємо інформацію про хід для всіх гравців
+    io.to(roomId).emit('turnChanged', {
+      currentPlayerId: socket.id
     });
   });
 
@@ -523,6 +689,9 @@ io.on('connection', (socket) => {
         discardTop: state.discardPile[state.discardPile.length - 1]
       });
     }
+    
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
     
     // Якщо дія не вимагає очікування додаткового вибору (випадок 4)
     if (diceResult !== 4) {

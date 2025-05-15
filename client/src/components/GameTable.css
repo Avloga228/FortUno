@@ -1,0 +1,64 @@
+.game-table {
+  width: 90%;
+  height: 90%;
+  max-width: 900px;
+  max-height: 700px;
+  margin: 0 auto; /* Центруємо всередині game-area */
+  background: #2d2363;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible; /* Важливо! Дозволяємо елементам виходити за межі столу */
+  border: 6px solid #3a2e7c;
+  position: relative; /* щоб дочірні елементи могли позиціонуватись відносно */
+}
+
+.table-surface {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible; /* Також змінюємо на visible, щоб елементи могли виходити за межі */
+}
+
+/* Створюємо стилізовану поверхню столу */
+.table-surface::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(ellipse, rgba(74, 58, 151, 0.6) 0%, rgba(45, 35, 99, 0.8) 70%);
+  pointer-events: none;
+}
+
+/* Внутрішній "овал" столу */
+.table-surface::after {
+  content: '';
+  position: absolute;
+  width: 92%;
+  height: 85%;
+  border: 6px solid rgba(255, 255, 255, 0.1);
+  border-radius: 120px;
+  pointer-events: none;
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 768px) {
+  .game-table {
+    width: 95%;
+    height: 85%;
+    max-height: 600px;
+    border-width: 4px;
+  }
+  
+  .table-surface::after {
+    border-width: 4px;
+    border-radius: 80px;
+    width: 90%;
+    height: 80%;
+  }
+} 

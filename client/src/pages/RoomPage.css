@@ -1,297 +1,207 @@
 /* RoomPage.css */
-.game-bg {
-    min-height: 100vh;
-    min-width: 100vw;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(circle at 50% 30%, #43cea2 0%, #185a9d 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-  
-  .game-container {
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    max-height: 100vh;
-    background: rgba(255,255,255,0.95);
-    border-radius: 0;
-    box-shadow: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow: hidden;
-  }
-  
-  .header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 0;
-    padding: 18px 32px 0 32px;
-    box-sizing: border-box;
-  }
-  
-  h1 {
-    color: #222; /* Темний колір для заголовка */
-  }
+.game-page {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #2d2363;
+  position: relative;
+  overflow: hidden;
+}
 
-  .room-id {
-    color: #ff6f61;
-    font-weight: bold;
-    letter-spacing: 2px;
-  }
-  
-  .players-count {
-    background: #ffb88c;
-    color: #fff;
-    padding: 8px 18px;
-    border-radius: 16px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    box-shadow: 0 2px 8px #ffecd2aa;
-  }
-  
-  .game-table {
-    flex: 1;
-    position: relative;
-    border: 3px solid #ffb88c;
-    border-radius: 20px;
-    margin: 0 32px 32px 32px;
-    background: linear-gradient(135deg, #fffbe6 0%, #ffe0c3 100%);
-    min-width: 0;
-    min-height: 0;
-    width: calc(100vw - 64px);
-    height: calc(100vh - 110px);
-    max-width: 1200px;
-    max-height: 700px;
-    overflow: visible;
-    box-sizing: border-box;
-  }
-  
-  .central-area {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    gap: 40px;
-    z-index: 2;
-  }
-  
-  .deck, .discard-pile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .deck-label {
-    margin-top: 8px;
-    font-size: 1rem;
-    color: #888;
-    font-weight: 500;
-  }
-  
-  .card {
-    width: 80px;
-    height: 120px;
-    border-radius: 14px;
-    border: 2px solid #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    font-weight: bold;
-    background: #fff;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-    color: #222; /* Темний текст для білих карт */
-    background: #fff;
-  }
-  
-  .card.red {
-    background: linear-gradient(135deg, #ff6f61 0%, #ffb88c 100%);
-    color: #fff; /* Білий текст на червоному */
-    border: 2px solid #ff6f61;
-  }
-  
-  .card.yellow {
-    background: linear-gradient(135deg, #ffe066 0%, #ffd700 100%);
-    color: #222;
-    border: 2px solid #ffd700;
-  }
-  .card.green {
-    background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
-    color: #fff;
-    border: 2px solid #43cea2;
-  }
-  .card.blue {
-    background: linear-gradient(135deg, #185a9d 0%, #43cea2 100%);
-    color: #fff;
-    border: 2px solid #185a9d;
-  }
-  .card.purple {
-    background: linear-gradient(135deg, #a259c4 0%, #6a0572 100%);
-    color: #fff;
-    border: 2px solid #a259c4;
-  }
-  .card.black {
-    background: linear-gradient(135deg, #222 0%, #444 100%);
-    color: #fff;
-    border: 2px solid #222;
-  }
-  
-  .card.playable:hover {
-    transform: translateY(-10px) scale(1.08);
-    box-shadow: 0 8px 32px 0 #ffb88c55;
-  }
-  
-  .opponent {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 1;
-    min-width: 70px;
-  }
-  
-  .opponent-top { 
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .opponent-left {
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  
-  .opponent-right {
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-  }
-  
-  .player-avatar {
-    font-size: 1.5rem;
-    margin-bottom: 4px;
-  }
-  
-  .player-name {
-    font-size: 1rem;
-    color: #185a9d;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  
-  .cards-stack {
-    background: #ffecd2;
-    color: #ff6f61;
-    padding: 4px 12px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-top: 2px;
-  }
-  
-  .current-player {
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
-    width: 95%;
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .hand {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    padding: 0;
-    margin-bottom: 0;
-  }
-  
-  .player-label {
-    margin-top: 4px;
-    font-size: 1rem;
-    color: #185a9d;
-    font-weight: 600;
-    letter-spacing: 1px;
-  }
+.game-page::before, .game-page::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  /* Адаптивність для маленьких екранів */
-  @media (max-width: 900px), (max-height: 700px) {
-    .game-table {
-      max-width: 98vw;
-      max-height: 60vh;
-      min-width: 0;
-      min-height: 0;
-    }
-    .card {
-      width: 60px;
-      height: 90px;
-      font-size: 1.1rem;
-    }
-    .hand {
-      gap: 6px;
-    }
-  }
+.game-page::before {
+  top: 0;
+  height: 50vh;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, #3a2e7c 40%, transparent 100%);
+  opacity: 0.7;
+}
 
-  .card.fortuno-colored-red {
-    outline: 4px solid #ff6f61 !important;
-    outline-offset: 2px;
-    border-radius: 12px;
-  }
-  .card.fortuno-colored-yellow {
-    outline: 4px solid #ffe066 !important;
-    outline-offset: 2px;
-    border-radius: 12px;
-  }
-  .card.fortuno-colored-green {
-    outline: 4px solid #43cea2 !important;
-    outline-offset: 2px;
-    border-radius: 12px;
-  }
-  .card.fortuno-colored-blue {
-    outline: 4px solid #185a9d !important;
-    outline-offset: 2px;
-    border-radius: 12px;
-  }
-  .card.fortuno-colored-purple {
-    outline: 4px solid #a259c4 !important;
-    outline-offset: 2px;
-    border-radius: 12px;
-  }
+.game-page::after {
+  bottom: 0;
+  height: 50vh;
+  background: radial-gradient(ellipse 80% 50% at 50% 100%, #463a8b 40%, transparent 100%);
+  opacity: 0.7;
+}
 
-  .dev-panel {
-    position: fixed;
-    top: 80px;
-    left: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 10;
+.game-area {
+  flex: 1;
+  position: relative; /* Важливо для абсолютного позиціонування дітей */
+  width: 100%;
+  height: calc(100vh - 70px); /* Зменшую висоту заголовка для більшого простору */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  padding: 30px 20px 100px; /* Збільшуємо нижній відступ для карт гравця */
+  box-sizing: border-box; /* Включаємо padding у розрахунок розмірів */
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+/* Dev-панель */
+.dev-panel {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  border-radius: 10px;
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.dev-panel.expanded {
+  max-height: 500px;
+  opacity: 0.95;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.dev-panel:hover {
+  opacity: 0.95;
+}
+
+.dev-panel button {
+  padding: 5px 10px;
+  background: #ffd54f;
+  color: #2d2363;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.dev-panel button:hover {
+  background: #ffb74d;
+}
+
+.dev-panel-toggle {
+  background: #ff6f61 !important;
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dev-panel-toggle:hover {
+  background: #ff5252 !important;
+}
+
+.dev-panel-toggle .toggle-icon {
+  margin-left: 5px;
+  transition: transform 0.3s ease;
+}
+
+.dev-panel.expanded .dev-panel-toggle .toggle-icon {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+  .game-area {
+    padding: 10px;
   }
-  .dev-panel button {
-    padding: 4px 10px;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #888;
-    background: #fffbe6;
-    color: #222;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .dev-panel button:hover {
-    background: #ffe066;
-  }
+}
+
+.error-boundary {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.error-boundary h2 {
+  color: #ffcc00;
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.error-boundary details {
+  margin: 10px 0;
+  text-align: left;
+}
+
+.error-boundary summary {
+  cursor: pointer;
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+.error-boundary button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.room-not-found {
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  max-width: 500px;
+  margin: 100px auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.room-not-found h2 {
+  color: #ff6f61;
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+.room-not-found p {
+  margin: 20px 0;
+  font-size: 1.2rem;
+}
+
+.room-not-found button {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.room-not-found button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}

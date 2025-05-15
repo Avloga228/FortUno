@@ -1,12 +1,59 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Component } from "react";
 import { useParams } from "react-router-dom";
 import { socket } from "../socket";
+
+// Імпортуємо компоненти
+import GameTable from "../components/GameTable";
+import GameHeader from "../components/GameHeader";
+import CardDeck from "../components/CardDeck";
+import PlayerHand from "../components/PlayerHand";
+import OpponentView from "../components/OpponentView";
 import ColorPicker from "../components/ColorPicker";
 import DiceRoller from "../components/DiceRoller";
+
 import "./RoomPage.css";
+
+// Додати компонент ErrorBoundary
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Помилка в компоненті:", error, errorInfo);
+    this.setState({ error, errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-boundary">
+          <h2>Щось пішло не так</h2>
+          <details>
+            <summary>Деталі помилки</summary>
+            <p>{this.state.error && this.state.error.toString()}</p>
+          </details>
+          <button onClick={() => this.setState({ hasError: false })}>
+            Спробувати знову
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function RoomPage() {
   const { roomId } = useParams();
+  
+  console.log(`RoomPage init: roomId=${roomId}`);
+  
   const [players, setPlayers] = useState([]);
   const [currentCard, setCurrentCard] = useState(null);
   const [hand, setHand] = useState([]);
@@ -19,11 +66,34 @@ export default function RoomPage() {
   const [actionBlockedMessage, setActionBlockedMessage] = useState("");
   const [diceResult, setDiceResult] = useState(null);
   const [turnSkippedMessage, setTurnSkippedMessage] = useState("");
+  const [pageLoaded, setPageLoaded] = useState(false);
+  const [roomExists, setRoomExists] = useState(true);
+  const [devPanelExpanded, setDevPanelExpanded] = useState(false);
+
+  // Перше завантаження - примусове оновлення через 1 секунду
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageLoaded(true);
+      console.log('Сторінка повністю завантажена');
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
+    console.log(`Joining room: ${roomId}`);
     socket.emit('joinRoom', roomId);
+    
+    socket.on('connect', () => {
+      console.log('Connected to server, socket ID:', socket.id);
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
 
     socket.on('playerJoined', (data) => {
+      console.log('Players in room:', data.players);
       setPlayers(data.players);
     });
 
@@ -50,6 +120,10 @@ export default function RoomPage() {
       setCurrentCard(discardTop);
       setPlayers(players);
       setGameStarted(true); // Гра почалася — вимикаємо кнопку
+    });
+
+    socket.on('updatePlayers', ({ players }) => {
+      setPlayers(players);
     });
 
     // Додаємо обробник події кидання кубика Фортуно
@@ -91,13 +165,40 @@ export default function RoomPage() {
       }, 3000);
     });
 
+    // Додати після всіх обробників подій в useEffect
+    socket.on('error', (error) => {
+      console.error('Socket IO error:', error);
+      setActionBlockedMessage(`Помилка з'єднання: ${error.message || 'Невідома помилка'}`);
+      
+      // Ховаємо повідомлення через 5 секунд
+      setTimeout(() => {
+        setActionBlockedMessage("");
+      }, 5000);
+    });
+    
+    socket.on('connect_failed', () => {
+      console.error('Socket IO connection failed');
+      setActionBlockedMessage("Не вдалося підключитися до сервера");
+      
+      // Ховаємо повідомлення через 5 секунд
+      setTimeout(() => {
+        setActionBlockedMessage("");
+      }, 5000);
+    });
+
     return () => {
+      console.log(`Leaving room: ${roomId}`);
       socket.emit('leaveRoom', roomId);
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('error');
+      socket.off('connect_failed');
       socket.off('playerJoined');
       socket.off('handDealt');
       socket.off('updateHandAndDiscard');
       socket.off('turnChanged');
       socket.off('gameStarted');
+      socket.off('updatePlayers');
       socket.off('fortunoDiceRolled');
       socket.off('chooseCardToDiscard');
       socket.off('actionBlocked');
@@ -105,21 +206,53 @@ export default function RoomPage() {
     };
   }, [roomId]);
 
-  // Кнопка для старту гри (можна зробити доступною лише хосту)
+  // Додати ефект для перевірки існування кімнати
+  useEffect(() => {
+    // Перевіряємо, чи існує кімната
+    const checkRoomExists = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/rooms/${roomId}`);
+        const data = await response.json();
+        
+        if (!data.exists) {
+          console.error(`Кімната ${roomId} не існує`);
+          setRoomExists(false);
+          setActionBlockedMessage('Кімната не існує');
+        } else {
+          console.log(`Кімната ${roomId} існує`);
+          setRoomExists(true);
+        }
+      } catch (err) {
+        console.error('Помилка перевірки кімнати:', err);
+        setActionBlockedMessage('Помилка з\'єднання з сервером');
+      }
+    };
+    
+    checkRoomExists();
+  }, [roomId]);
+
+  // Кнопка для старту гри
   const handleStartGame = () => {
     socket.emit('startGame', roomId);
     setGameStarted(true); // Вимикаємо кнопку одразу після натискання
   };
 
-  // Клік по картці для викладання
-  const handlePlayCard = (card) => {
+  // Клік по картці для викладання або скидання
+  const handlePlayCard = (cardOrIndex, isDiscard = false) => {
     if (currentPlayerId !== socket.id) return;
     
-    if (card.color === "black") {
-      setShowColorPicker(true);
-      setPendingBlackCard(card);
+    if (isDiscard) {
+      // Скидання карти для ефекту Фортуно №4 (-1 карта)
+      socket.emit('discardCard', { roomId, cardIndex: cardOrIndex });
+      setChooseCardToDiscard(false);
     } else {
-      socket.emit('playCard', { roomId, card });
+      // Звичайний хід картою
+      if (cardOrIndex.color === "black") {
+        setShowColorPicker(true);
+        setPendingBlackCard(cardOrIndex);
+      } else {
+        socket.emit('playCard', { roomId, card: cardOrIndex });
+      }
     }
   };
 
@@ -135,24 +268,15 @@ export default function RoomPage() {
   // Обробка результату кидання кубика
   const handleDiceResult = (result) => {
     // Не закриваємо модальне вікно одразу
-    // Компонент сам ховає результат через 5 секунд (див. DiceRoller.jsx)
-    // і викликає callback, після чого ми закриваємо модальне вікно
+    // Компонент сам ховає результат через 5 секунд
     setTimeout(() => {
       setShowDiceRoller(false);
     }, 5000); // Закриваємо модальне вікно через 5 секунд після завершення анімації
   };
 
   // Обробка завершення анімації кубика - повідомляємо сервер
-  const handleDiceFinished = (result) => {
+  const handleDiceFinished = () => {
     socket.emit('fortunoDiceFinished', { roomId });
-  };
-
-  // Вибір картини для скидання
-  const handleDiscardCard = (index) => {
-    if (chooseCardToDiscard && currentPlayerId === socket.id) {
-      socket.emit('discardCard', { roomId, cardIndex: index });
-      setChooseCardToDiscard(false);
-    }
   };
 
   // Взяти карту з колоди
@@ -161,246 +285,92 @@ export default function RoomPage() {
     socket.emit('drawCard', { roomId });
   };
 
-  // Відображення кольору картки для класу
-  const getCardClass = (card) => {
-    if (!card) return "card";
-    let colorClass = "";
-    switch (card.color) {
-      case "red": colorClass = "red"; break;
-      case "yellow": colorClass = "yellow"; break;
-      case "green": colorClass = "green"; break;
-      case "blue": colorClass = "blue"; break;
-      case "purple": colorClass = "purple"; break;
-      case "black": colorClass = "black"; break;
-      default: colorClass = "";
-    }
-    return `card playable ${colorClass}`;
+  // Фільтруємо опонентів (всі гравці, крім поточного)
+  const opponents = players.filter(p => p.id !== socket.id);
+
+  // Функція для розгортання/згортання панелі розробника
+  const toggleDevPanel = () => {
+    setDevPanelExpanded(!devPanelExpanded);
   };
 
-  // Додаю функцію для отримання шляху до зображення картки
-  const getCardImage = (card) => {
-    if (!card) return null;
-    let value = String(card.value).toLowerCase();
-    // Українські назви для спеціальних карт
-    if (value === 'обертання ходу') value = 'reverse';
-    if (value === 'пропуск ходу') value = 'skip';
-    if (value === '+3 картини') value = 'plus_3';
-    if (value === '+5 карт') value = 'plus_5';
-    if (value === 'фортуно') value = 'fortuno';
-    // Для спеціальних карток (англійські варіанти)
-    if (value === '+3' || value === 'plus_3') value = 'plus_3';
-    if (value === '+5' || value === 'plus_5') value = 'plus_5';
-    if (value === 'wild' || value === 'fortuno') value = 'fortuno';
-    if (value === 'skip') value = 'skip';
-    if (value === 'reverse') value = 'reverse';
-    if (
-      card && card.color === 'black' &&
-      !['фортуно', 'fortuno', 'plus_5', '+5', '+5 карт'].includes(String(card.value).toLowerCase())
-    ) {
-      console.log('DEBUG +3 VALUE:', card.value, card);
-    }
-    return `/img/${card.color}/card_${card.color}_${value}.webp`;
-  };
-
-  // Dev-панель для видачі карт
-  const devCards = [
-    { value: 'ФортУно', color: 'black' },
-    { value: '+3 картини', color: 'black' },
-    { value: '+5 карт', color: 'black' },
-    { value: 'Пропуск ходу', color: 'red' },
-    { value: 'Обертання ходу', color: 'red' },
-    ...[1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), color: 'red' }))
-  ];
-  const handleDevGiveCard = (card) => {
-    socket.emit('devGiveCard', { roomId, value: card.value, color: card.color });
-  };
+  // Додати умовний рендерінг компонентів на основі існування кімнати
+  if (!roomExists) {
+    return (
+      <div className="game-page">
+        <div className="room-not-found">
+          <h2>Кімната не знайдена</h2>
+          <p>Кімната з ідентифікатором "{roomId}" не існує.</p>
+          <button onClick={() => window.location.href = '/'}>
+            Повернутися на головну
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="game-bg">
-      <div className="dev-panel">
-        {devCards.map((card, idx) => (
-          <button key={idx} onClick={() => handleDevGiveCard(card)}>
-            {card.value}
-          </button>
-        ))}
-      </div>
-      <div className="game-container">
-        <div className="header">
-          <h1>
-            Кімната: <span className="room-id">{roomId}</span>
-          </h1>
-          <div className="players-count">Гравців: {players.length}/4</div>
-          <div>
-            {currentPlayerId === socket.id
-              ? <span style={{ color: "green" }}>Ваш хід!</span>
-              : <span style={{ color: "red" }}>Хід суперника</span>
-            }
-          </div>
-          {actionBlockedMessage && (
-            <div className="action-blocked-message" style={{ color: "red", fontWeight: "bold" }}>
-              {actionBlockedMessage}
-            </div>
-          )}
-          {turnSkippedMessage && (
-            <div className="turn-skipped-message" style={{ color: "orange", fontWeight: "bold" }}>
-              {turnSkippedMessage}
-            </div>
-          )}
-          <button 
-            onClick={handleStartGame} 
-            disabled={gameStarted || players.length < 2}
-          >
-            Старт гри
-          </button>
+    <ErrorBoundary>
+      <div className="game-page">
+        {/* Шапка гри */}
+        <ErrorBoundary>
+          <GameHeader 
+            roomId={roomId}
+            playersCount={players.length}
+            isCurrentPlayerTurn={currentPlayerId === socket.id}
+            actionBlockedMessage={actionBlockedMessage}
+            turnSkippedMessage={turnSkippedMessage}
+            onStartGame={handleStartGame}
+            isGameStarted={gameStarted}
+          />
+        </ErrorBoundary>
+        
+        {/* Ігровий стіл */}
+        <div className="game-area">
+          {/* Опоненти — позиціонуються абсолютно відносно game-area */}
+          {opponents.map((player, index) => (
+            <ErrorBoundary key={`opponent-boundary-${index}`}>
+              <OpponentView 
+                key={player.id || `opponent-${index}`}
+                player={player || {}}
+                position={index + 1}
+                isCurrentTurn={currentPlayerId === (player && player.id)}
+                totalPlayers={players.length}
+              />
+            </ErrorBoundary>
+          ))}
+
+          {/* Рука гравця — абсолютне позиціонування в game-area */}
+          <ErrorBoundary>
+            <PlayerHand 
+              hand={hand} 
+              isCurrentPlayerTurn={currentPlayerId === socket.id}
+              onPlayCard={handlePlayCard}
+              chooseCardToDiscard={chooseCardToDiscard}
+            />
+          </ErrorBoundary>
+
+          {/* Ігровий стіл з колодою і відбоєм */}
+          <ErrorBoundary>
+            <GameTable>
+              <CardDeck
+                currentCard={currentCard}
+                onDrawCard={handleDrawCard}
+                isCurrentPlayerTurn={currentPlayerId === socket.id}
+              />
+            </GameTable>
+          </ErrorBoundary>
         </div>
 
-        <div className="game-table">
-          {/* Центральна область */}
-          <div className="central-area">
-            <div className="deck">
-              <div
-                className="card back"
-                onClick={currentPlayerId === socket.id ? handleDrawCard : undefined}
-                style={{ cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed" }}
-                title={currentPlayerId === socket.id ? "Взяти карту" : "Зачекайте свого ходу"}
-              >?</div>
-              <div className="deck-label">Колода</div>
-            </div>
-            <div className="discard-pile">
-              <div
-                className={getCardClass(currentCard)}
-              >
-                {currentCard ? (
-                  <img
-                    src={getCardImage(currentCard)}
-                    alt={`${currentCard.value} ${currentCard.color}`}
-                    style={{
-                      width: 80,
-                      height: 120,
-                      objectFit: 'contain',
-                      outline:
-                        (() => {
-                          const val = String(currentCard.value).toLowerCase().trim();
-                          const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
-                            'plus_5', '+5', '+5 карт'
-                          ].includes(val);
-                          if (match && currentCard.chosenColor) {
-                            console.log('OBVODKA DEBUG:', val, currentCard);
-                            return `4px solid ${
-                              currentCard.chosenColor === 'red' ? '#ff6f61' :
-                              currentCard.chosenColor === 'yellow' ? '#ffe066' :
-                              currentCard.chosenColor === 'green' ? '#43cea2' :
-                              currentCard.chosenColor === 'blue' ? '#185a9d' :
-                              currentCard.chosenColor === 'purple' ? '#a259c4' :
-                              '#000'
-                            }`;
-                          }
-                          return undefined;
-                        })(),
-                      outlineOffset:
-                        (() => {
-                          const val = String(currentCard.value).toLowerCase().trim();
-                          const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
-                            'plus_5', '+5', '+5 карт'
-                          ].includes(val);
-                          if (match && currentCard.chosenColor) {
-                            return '2px';
-                          }
-                          return undefined;
-                        })(),
-                      borderRadius: '12px',
-                    }}
-                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
-                  />
-                ) : ""}
-              </div>
-              <div className="deck-label">Скидання</div>
-            </div>
-          </div>
-
-          {/* Гравець знизу (поточний) */}
-          <div className="current-player">
-            <div className="hand">
-              {hand.map((card, index) => (
-                <div
-                  key={index}
-                  className={getCardClass(card)}
-                  onClick={() => chooseCardToDiscard ? handleDiscardCard(index) : handlePlayCard(card)}
-                  style={{
-                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed",
-                    border: chooseCardToDiscard && currentPlayerId === socket.id ? "3px dashed red" : undefined
-                  }}
-                  title={
-                    chooseCardToDiscard && currentPlayerId === socket.id 
-                    ? "Виберіть карту для скидання" 
-                    : currentPlayerId === socket.id ? "Викласти карту" : "Зачекайте свого ходу"
-                  }
-                >
-                  <img
-                    src={getCardImage(card)}
-                    alt={`${card.value} ${card.color}`}
-                    style={{
-                      width: 80,
-                      height: 120,
-                      objectFit: 'contain',
-                      outline:
-                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
-                          ? `4px solid ${
-                              card.chosenColor === 'red' ? '#ff6f61' :
-                              card.chosenColor === 'yellow' ? '#ffe066' :
-                              card.chosenColor === 'green' ? '#43cea2' :
-                              card.chosenColor === 'blue' ? '#185a9d' :
-                              card.chosenColor === 'purple' ? '#a259c4' :
-                              '#000'
-                            }`
-                          : undefined,
-                      outlineOffset:
-                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
-                          ? '2px'
-                          : undefined,
-                      borderRadius: '12px',
-                    }}
-                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="player-label">
-              {chooseCardToDiscard && currentPlayerId === socket.id 
-                ? "Виберіть карту для скидання" 
-                : "Ваша рука"}
-            </div>
-          </div>
-        </div>
-
-        {/* Модальне вікно вибору кольору для чорної картини */}
+        
+        {/* Модальні вікна */}
         {showColorPicker && (
-          <div className="color-picker-modal" style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}>
+          <div className="modal-overlay">
             <ColorPicker onPick={handleColorPick} />
           </div>
         )}
-
-        {/* Модальне вікно з кубиком для карти Фортуно */}
+        
         {showDiceRoller && (
-          <div className="dice-roller-modal" style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}>
+          <div className="modal-overlay">
             <DiceRoller 
               onResult={handleDiceResult} 
               serverDiceResult={diceResult} 
@@ -408,7 +378,48 @@ export default function RoomPage() {
             />
           </div>
         )}
+        
+        {/* Dev-панель з можливістю розгортання/згортання */}
+        <div className={`dev-panel ${devPanelExpanded ? 'expanded' : ''}`}>
+          <button className="dev-panel-toggle" onClick={toggleDevPanel}>
+            {devPanelExpanded ? 'Сховати інструменти' : 'Показати інструменти'}
+            <span className="toggle-icon">▼</span>
+          </button>
+          
+          {/* Відображаємо кнопки розробника тільки якщо гра почалася і панель розгорнута */}
+          {gameStarted && devPanelExpanded && (
+            <>
+              <button onClick={() => socket.emit('devGiveCard', { roomId, value: 'ФортУно', color: 'black' })}>
+                Фортуно
+              </button>
+              
+              <button onClick={() => socket.emit('devGiveCard', { roomId, value: 'Пропуск ходу', color: 'red' })}>
+                Пропуск
+              </button>
+              
+              <button onClick={() => socket.emit('devGiveCard', { roomId, value: 'Обертання ходу', color: 'blue' })}>
+                Обертання ходу
+              </button>
+              
+              <button onClick={() => socket.emit('devGiveCard', { roomId, value: '+3 картини', color: 'black' })}>
+                +3 картини
+              </button>
+              
+              <button onClick={() => socket.emit('devGiveCard', { roomId, value: '+5 карт', color: 'black' })}>
+                +5 карт
+              </button>
+              
+              <button onClick={() => socket.emit('devDrawCards', { roomId, count: 3 })}>
+                Взяти 3 карти
+              </button>
+              
+              <button onClick={() => socket.emit('devSetMyTurn', { roomId })}>
+                Зробити мій хід
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

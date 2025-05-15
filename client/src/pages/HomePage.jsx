@@ -7,16 +7,36 @@ export default function HomePage() {
 
   const handleHost = async () => {
     try {
+      console.log('Створення кімнати...');
+      
+      // Перевірка доступності API
+      const checkServerUrl = 'http://localhost:5000/api/rooms';
+      console.log('Перевірка доступності API за URL:', checkServerUrl);
+      
       const response = await fetch('http://localhost:5000/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
+      
+      console.log('API відповідь отримана:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP помилка: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Дані отримані:', data);
+      
       if (data.roomId) {
-        navigate(`/room/${data.roomId}`);
+        const roomUrl = `/room/${data.roomId}`;
+        console.log('Перенаправлення на:', roomUrl);
+        navigate(roomUrl);
+      } else {
+        throw new Error('Не отримано roomId від сервера');
       }
     } catch (err) {
-      alert('Помилка створення кімнати!');
+      console.error('Помилка створення кімнати:', err);
+      alert('Помилка створення кімнати: ' + err.message);
     }
   };
 

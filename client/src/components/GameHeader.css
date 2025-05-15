@@ -1,0 +1,211 @@
+.game-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 25px;
+  background: #2d2363;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  color: white;
+  z-index: 100;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.header-left, .header-center, .header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
+  margin-right: 10px;
+}
+
+.header-center {
+  flex: 2;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  min-width: 0;
+}
+
+.header-right {
+  flex: 1;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.room-title {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffd54f;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-id {
+  color: #ff6f61;
+  font-size: 1.4rem;
+  letter-spacing: 1px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.players-count {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.turn-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.your-turn {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.opponent-turn {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.start-game-btn {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #ff6f61 0%, #ffb88c 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.start-game-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.start-game-btn:disabled {
+  background: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.action-blocked-message {
+  color: #f44336;
+  font-weight: 600;
+  background: rgba(244, 67, 54, 0.1);
+  padding: 6px 16px;
+  border-radius: 20px;
+  animation: pulse 1.5s infinite;
+}
+
+.turn-skipped-message {
+  color: #ff9800;
+  font-weight: 600;
+  background: rgba(255, 152, 0, 0.1);
+  padding: 6px 16px;
+  border-radius: 20px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Медіа-запити для різних розмірів екрану */
+@media (max-width: 1024px) {
+  .game-header {
+    padding: 10px 15px;
+  }
+  
+  .header-right {
+    gap: 8px;
+  }
+  
+  .room-title {
+    font-size: 1.6rem;
+  }
+  
+  .room-id {
+    font-size: 1.2rem;
+  }
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 768px) {
+  .game-header {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .header-left, .header-center, .header-right {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  .header-right {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .room-title {
+    font-size: 1.4rem;
+  }
+  
+  .room-id {
+    font-size: 1.2rem;
+  }
+}
+
+/* Додатковий запит для дуже малих екранів */
+@media (max-width: 480px) {
+  .header-right {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .players-count, .turn-status, .start-game-btn {
+    width: 100%;
+    font-size: 0.8rem;
+  }
+}
