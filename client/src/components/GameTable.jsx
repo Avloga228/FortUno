@@ -1,7 +1,7 @@
 import React from "react";
 import "./GameTable.css";
 
-const GameTable = ({ children, discardPile, deckClick, currentPlayerId, yourId }) => {
+const GameTable = ({ children }) => {
   return (
     <div className="game-table">
       <div className="table-surface">

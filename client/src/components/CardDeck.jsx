@@ -47,9 +47,8 @@ const CardDeck = ({ currentCard, onDrawCard, isCurrentPlayerTurn }) => {
       }
       
       return {
-        outline: `4px solid ${outlineColor}`,
-        outlineOffset: '2px',
-        borderRadius: '12px'
+        boxShadow: `0 0 8px 3px ${outlineColor}`,
+        border: `2px solid ${outlineColor}`
       };
     }
     
@@ -62,7 +61,6 @@ const CardDeck = ({ currentCard, onDrawCard, isCurrentPlayerTurn }) => {
         <div
           className="card deck-pile"
           onClick={isCurrentPlayerTurn ? onDrawCard : undefined}
-          style={{ cursor: isCurrentPlayerTurn ? "pointer" : "not-allowed" }}
         >
           <div className="deck-top">
             <img 

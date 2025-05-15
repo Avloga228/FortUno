@@ -46,7 +46,9 @@ const OpponentView = ({ player, position, isCurrentTurn, totalPlayers }) => {
       
       <div className="opponent-info">
         <div className="opponent-name">
-          {player.name || `Гравець ${player.id.substring(0, 4)}`}
+          {player.name || (player.id && typeof player.id === 'string' 
+            ? `Гравець ${player.id.substring(0, 4)}` 
+            : `Гравець ${position}`)}
         </div>
         <div className="opponent-cards-count">
           {player.handSize || 0} карт

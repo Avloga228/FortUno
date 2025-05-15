@@ -1,10 +1,11 @@
 .card-deck-container {
   display: flex;
-  gap: 50px;
+  gap: 120px;
   align-items: center;
   justify-content: center;
   z-index: 10;
   position: relative;
+  padding: 20px;
 }
 
 .deck, .discard {
@@ -15,11 +16,12 @@
 }
 
 .card {
-  width: 86px;
-  height: 126px;
+  width: 110px;
+  height: 165px;
   border-radius: 12px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  background-color: black;
 }
 
 .deck-pile {
@@ -27,6 +29,7 @@
   position: relative;
   transform: rotate(-2deg);
   transition: transform 0.2s;
+  cursor: pointer;
 }
 
 .deck-pile:hover {
@@ -50,10 +53,11 @@
 .discard-pile {
   overflow: visible;
   transform: rotate(2deg);
-  background: rgba(255, 255, 255, 0.1);
+  background: black;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 10px;
 }
 
 .discard-pile img {
@@ -62,6 +66,7 @@
   object-fit: cover;
   border-radius: 10px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  padding: 0;
 }
 
 .empty-discard {
@@ -105,11 +110,11 @@
 /* Адаптивність для маленьких екранів */
 @media (max-width: 768px) {
   .card-deck-container {
-    gap: 30px;
+    gap: 60px;
   }
   
   .card {
-    width: 70px;
-    height: 100px;
+    width: 90px;
+    height: 135px;
   }
 } 
