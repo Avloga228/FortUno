@@ -64,7 +64,7 @@ const CardDeck = ({ currentCard, onDrawCard, isCurrentPlayerTurn }) => {
         >
           <div className="deck-top">
             <img 
-              src="/img/card_back.webp" 
+              src="/img/back/card_back.webp" 
               alt="Колода"
               onError={(e) => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
             />
