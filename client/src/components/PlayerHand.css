@@ -36,7 +36,6 @@
 
 .player-card:hover {
   transform: translateY(-20px) !important;
-  z-index: 100 !important;
   box-shadow: 0 15px 25px rgba(0, 0, 0, 0.4);
 }
 
@@ -80,5 +79,26 @@
   
   .player-card:hover {
     transform: translateY(-10px) !important;
+  }
+}
+
+/* Адаптивність для дуже маленьких екранів */
+@media (max-width: 480px) {
+  .player-card {
+    width: 75px;
+    height: 112px;
+  }
+  
+  .cards-container {
+    min-height: 140px;
+  }
+  
+  .player-card:hover {
+    transform: translateY(-8px) !important;
+  }
+  
+  .player-hand-label {
+    font-size: 0.85rem;
+    padding: 4px 12px;
   }
 } 
