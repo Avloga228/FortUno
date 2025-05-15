@@ -1,0 +1,115 @@
+.card-deck-container {
+  display: flex;
+  gap: 50px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  position: relative;
+}
+
+.deck, .discard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.card {
+  width: 86px;
+  height: 126px;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.deck-pile {
+  background: #222;
+  position: relative;
+  transform: rotate(-2deg);
+  transition: transform 0.2s;
+}
+
+.deck-pile:hover {
+  transform: rotate(0) translateY(-5px);
+}
+
+.deck-top {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-top img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.discard-pile {
+  overflow: visible;
+  transform: rotate(2deg);
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discard-pile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.empty-discard {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-label {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Додаткові картки в колоді для об'ємного вигляду */
+.deck-pile::before, 
+.deck-pile::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #222;
+  border-radius: 12px;
+  z-index: -1;
+}
+
+.deck-pile::before {
+  transform: translateY(-3px) translateX(-3px);
+}
+
+.deck-pile::after {
+  transform: translateY(-6px) translateX(-6px);
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 768px) {
+  .card-deck-container {
+    gap: 30px;
+  }
+  
+  .card {
+    width: 70px;
+    height: 100px;
+  }
+} 

@@ -1,0 +1,76 @@
+.player-hand-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  z-index: 5;
+}
+
+.cards-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  perspective: 800px;
+  min-height: 160px;
+  width: 100%;
+  padding: 10px 30px;
+  position: relative;
+}
+
+.player-card {
+  width: 90px;
+  height: 130px;
+  margin: 0 -10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, margin 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.player-card.playable:hover {
+  transform: translateY(-25px) scale(1.1) rotate(0deg) !important;
+  z-index: 10;
+  box-shadow: 0 15px 20px rgba(0, 0, 0, 0.4);
+  margin: 0 5px;
+}
+
+.player-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.player-hand-label {
+  margin-top: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 5px 15px;
+  border-radius: 20px;
+}
+
+/* Адаптивність для маленьких екранів */
+@media (max-width: 768px) {
+  .player-card {
+    width: 70px;
+    height: 100px;
+    margin: 0 -15px;
+  }
+  
+  .cards-container {
+    min-height: 130px;
+  }
+  
+  .player-card.playable:hover {
+    transform: translateY(-15px) scale(1.1) rotate(0deg) !important;
+  }
+} 

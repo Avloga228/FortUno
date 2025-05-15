@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { socket } from "../socket";
+
+// Імпортуємо компоненти
+import GameTable from "../components/GameTable";
+import GameHeader from "../components/GameHeader";
+import CardDeck from "../components/CardDeck";
+import PlayerHand from "../components/PlayerHand";
+import OpponentView from "../components/OpponentView";
 import ColorPicker from "../components/ColorPicker";
 import DiceRoller from "../components/DiceRoller";
+
 import "./RoomPage.css";
 
 export default function RoomPage() {
@@ -110,21 +118,28 @@ export default function RoomPage() {
     };
   }, [roomId]);
 
-  // Кнопка для старту гри (можна зробити доступною лише хосту)
+  // Кнопка для старту гри
   const handleStartGame = () => {
     socket.emit('startGame', roomId);
     setGameStarted(true); // Вимикаємо кнопку одразу після натискання
   };
 
-  // Клік по картці для викладання
-  const handlePlayCard = (card) => {
+  // Клік по картці для викладання або скидання
+  const handlePlayCard = (cardOrIndex, isDiscard = false) => {
     if (currentPlayerId !== socket.id) return;
     
-    if (card.color === "black") {
-      setShowColorPicker(true);
-      setPendingBlackCard(card);
+    if (isDiscard) {
+      // Скидання карти для ефекту Фортуно №4 (-1 карта)
+      socket.emit('discardCard', { roomId, cardIndex: cardOrIndex });
+      setChooseCardToDiscard(false);
     } else {
-      socket.emit('playCard', { roomId, card });
+      // Звичайний хід картою
+      if (cardOrIndex.color === "black") {
+        setShowColorPicker(true);
+        setPendingBlackCard(cardOrIndex);
+      } else {
+        socket.emit('playCard', { roomId, card: cardOrIndex });
+      }
     }
   };
 
@@ -140,24 +155,15 @@ export default function RoomPage() {
   // Обробка результату кидання кубика
   const handleDiceResult = (result) => {
     // Не закриваємо модальне вікно одразу
-    // Компонент сам ховає результат через 5 секунд (див. DiceRoller.jsx)
-    // і викликає callback, після чого ми закриваємо модальне вікно
+    // Компонент сам ховає результат через 5 секунд
     setTimeout(() => {
       setShowDiceRoller(false);
     }, 5000); // Закриваємо модальне вікно через 5 секунд після завершення анімації
   };
 
   // Обробка завершення анімації кубика - повідомляємо сервер
-  const handleDiceFinished = (result) => {
+  const handleDiceFinished = () => {
     socket.emit('fortunoDiceFinished', { roomId });
-  };
-
-  // Вибір картини для скидання
-  const handleDiscardCard = (index) => {
-    if (chooseCardToDiscard && currentPlayerId === socket.id) {
-      socket.emit('discardCard', { roomId, cardIndex: index });
-      setChooseCardToDiscard(false);
-    }
   };
 
   // Взяти карту з колоди
@@ -166,280 +172,78 @@ export default function RoomPage() {
     socket.emit('drawCard', { roomId });
   };
 
-  // Відображення кольору картки для класу
-  const getCardClass = (card) => {
-    if (!card) return "card";
-    let colorClass = "";
-    switch (card.color) {
-      case "red": colorClass = "red"; break;
-      case "yellow": colorClass = "yellow"; break;
-      case "green": colorClass = "green"; break;
-      case "blue": colorClass = "blue"; break;
-      case "purple": colorClass = "purple"; break;
-      case "black": colorClass = "black"; break;
-      default: colorClass = "";
-    }
-    return `card playable ${colorClass}`;
-  };
-
-  // Додаю функцію для отримання шляху до зображення картки
-  const getCardImage = (card) => {
-    if (!card) return null;
-    let value = String(card.value).toLowerCase();
-    // Українські назви для спеціальних карт
-    if (value === 'обертання ходу') value = 'reverse';
-    if (value === 'пропуск ходу') value = 'skip';
-    if (value === '+3 картини') value = 'plus_3';
-    if (value === '+5 карт') value = 'plus_5';
-    if (value === 'фортуно') value = 'fortuno';
-    // Для спеціальних карток (англійські варіанти)
-    if (value === '+3' || value === 'plus_3') value = 'plus_3';
-    if (value === '+5' || value === 'plus_5') value = 'plus_5';
-    if (value === 'wild' || value === 'fortuno') value = 'fortuno';
-    if (value === 'skip') value = 'skip';
-    if (value === 'reverse') value = 'reverse';
-    if (
-      card && card.color === 'black' &&
-      !['фортуно', 'fortuno', 'plus_5', '+5', '+5 карт'].includes(String(card.value).toLowerCase())
-    ) {
-      console.log('DEBUG +3 VALUE:', card.value, card);
-    }
-    return `/img/${card.color}/card_${card.color}_${value}.webp`;
-  };
-
-  // Dev-панель для видачі карт
-  const devCards = [
-    { value: 'ФортУно', color: 'black' },
-    { value: '+3 картини', color: 'black' },
-    { value: '+5 карт', color: 'black' },
-    { value: 'Пропуск ходу', color: 'red' },
-    { value: 'Обертання ходу', color: 'red' },
-    ...[1,2,3,4,5,6,7,8,9].map(n => ({ value: String(n), color: 'red' }))
-  ];
-  const handleDevGiveCard = (card) => {
-    socket.emit('devGiveCard', { roomId, value: card.value, color: card.color });
-  };
+  // Фільтруємо опонентів (всі гравці, крім поточного)
+  const opponents = players.filter(p => p.id !== socket.id);
 
   return (
-    <div className="game-bg">
-      <div className="dev-panel">
-        {devCards.map((card, idx) => (
-          <button key={idx} onClick={() => handleDevGiveCard(card)}>
-            {card.value}
-          </button>
-        ))}
-      </div>
-      <div className="game-container">
-        <div className="header">
-          <h1>
-            Кімната: <span className="room-id">{roomId}</span>
-          </h1>
-          <div className="players-count">Гравців: {players.length}/4</div>
-          <div>
-            {currentPlayerId === socket.id
-              ? <span style={{ color: "green" }}>Ваш хід!</span>
-              : <span style={{ color: "red" }}>Хід суперника</span>
-            }
-          </div>
-          {actionBlockedMessage && (
-            <div className="action-blocked-message" style={{ color: "red", fontWeight: "bold" }}>
-              {actionBlockedMessage}
-            </div>
-          )}
-          {turnSkippedMessage && (
-            <div className="turn-skipped-message" style={{ color: "orange", fontWeight: "bold" }}>
-              {turnSkippedMessage}
-            </div>
-          )}
-          <button 
-            onClick={handleStartGame} 
-            disabled={gameStarted || players.length < 2}
-          >
-            Старт гри
-          </button>
-        </div>
-
-        <div className="game-table">
+    <div className="game-page">
+      {/* Шапка гри */}
+      <GameHeader 
+        roomId={roomId}
+        playersCount={players.length}
+        isCurrentPlayerTurn={currentPlayerId === socket.id}
+        actionBlockedMessage={actionBlockedMessage}
+        turnSkippedMessage={turnSkippedMessage}
+        onStartGame={handleStartGame}
+        isGameStarted={gameStarted}
+      />
+      
+      {/* Ігровий стіл */}
+      <div className="game-area">
+        <GameTable>
           {/* Опоненти */}
-          {(() => {
-            const opponents = players.filter(p => p.id !== socket.id);
-            const positions = [
-              'opponent-top',
-              'opponent-left',
-              'opponent-right'
-            ];
-            return opponents.map((player, idx) => {
-              let posClass = '';
-              if (opponents.length === 1) posClass = 'opponent-top';
-              if (opponents.length === 2) posClass = idx === 0 ? 'opponent-top' : 'opponent-left';
-              if (opponents.length === 3) posClass = positions[idx];
-              return (
-                <div key={player.id} className={`opponent ${posClass}`}>
-                  <div className="player-avatar">👤</div>
-                  <div className="player-name">{player.name || `Гравець`}</div>
-                  <div className="hand" style={{flexDirection: 'row', gap: 6}}>
-                    {Array.from({length: player.handSize ?? 0}).map((_, i) => (
-                      <div key={i} className="card" style={{background:'#111', border:'2px solid #222', width: 40, height: 60}} />
-                    ))}
-                  </div>
-                  <div className="cards-stack">{player.handSize ?? 0} карт</div>
-                </div>
-              );
-            });
-          })()}
-          {/* Центральна область */}
-          <div className="central-area">
-            <div className="deck">
-              <div
-                className="card back"
-                onClick={currentPlayerId === socket.id ? handleDrawCard : undefined}
-                style={{ cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed" }}
-                title={currentPlayerId === socket.id ? "Взяти карту" : "Зачекайте свого ходу"}
-              >?</div>
-              <div className="deck-label">Колода</div>
-            </div>
-            <div className="discard-pile">
-              <div
-                className={getCardClass(currentCard)}
-              >
-                {currentCard ? (
-                  <img
-                    src={getCardImage(currentCard)}
-                    alt={`${currentCard.value} ${currentCard.color}`}
-                    style={{
-                      width: 80,
-                      height: 120,
-                      objectFit: 'contain',
-                      outline:
-                        (() => {
-                          const val = String(currentCard.value).toLowerCase().trim();
-                          const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
-                            'plus_5', '+5', '+5 карт'
-                          ].includes(val);
-                          if (match && currentCard.chosenColor) {
-                            console.log('OBVODKA DEBUG:', val, currentCard);
-                            return `4px solid ${
-                              currentCard.chosenColor === 'red' ? '#ff6f61' :
-                              currentCard.chosenColor === 'yellow' ? '#ffe066' :
-                              currentCard.chosenColor === 'green' ? '#43cea2' :
-                              currentCard.chosenColor === 'blue' ? '#185a9d' :
-                              currentCard.chosenColor === 'purple' ? '#a259c4' :
-                              '#000'
-                            }`;
-                          }
-                          return undefined;
-                        })(),
-                      outlineOffset:
-                        (() => {
-                          const val = String(currentCard.value).toLowerCase().trim();
-                          const match = [
-                            'фортуно', 'fortuno', 'plus_3', '+3', '+3 картини', '3', '3 картини',
-                            'plus_5', '+5', '+5 карт'
-                          ].includes(val);
-                          if (match && currentCard.chosenColor) {
-                            return '2px';
-                          }
-                          return undefined;
-                        })(),
-                      borderRadius: '12px',
-                    }}
-                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
-                  />
-                ) : ""}
-              </div>
-              <div className="deck-label">Скидання</div>
-            </div>
-          </div>
-
-          {/* Гравець знизу (поточний) */}
-          <div className="current-player">
-            <div className="hand">
-              {hand.map((card, index) => (
-                <div
-                  key={index}
-                  className={getCardClass(card)}
-                  onClick={() => chooseCardToDiscard ? handleDiscardCard(index) : handlePlayCard(card)}
-                  style={{
-                    cursor: currentPlayerId === socket.id ? "pointer" : "not-allowed",
-                    border: chooseCardToDiscard && currentPlayerId === socket.id ? "3px dashed red" : undefined
-                  }}
-                  title={
-                    chooseCardToDiscard && currentPlayerId === socket.id 
-                    ? "Виберіть карту для скидання" 
-                    : currentPlayerId === socket.id ? "Викласти карту" : "Зачекайте свого ходу"
-                  }
-                >
-                  <img
-                    src={getCardImage(card)}
-                    alt={`${card.value} ${card.color}`}
-                    style={{
-                      width: 80,
-                      height: 120,
-                      objectFit: 'contain',
-                      outline:
-                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
-                          ? `4px solid ${
-                              card.chosenColor === 'red' ? '#ff6f61' :
-                              card.chosenColor === 'yellow' ? '#ffe066' :
-                              card.chosenColor === 'green' ? '#43cea2' :
-                              card.chosenColor === 'blue' ? '#185a9d' :
-                              card.chosenColor === 'purple' ? '#a259c4' :
-                              '#000'
-                            }`
-                          : undefined,
-                      outlineOffset:
-                        (String(card.value).toLowerCase() === 'фортуно' || String(card.value).toLowerCase() === 'fortuno') && card.chosenColor
-                          ? '2px'
-                          : undefined,
-                      borderRadius: '12px',
-                    }}
-                    onError={e => { e.target.onerror = null; e.target.src = '/img/card_placeholder.webp'; }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="player-label">
-              {chooseCardToDiscard && currentPlayerId === socket.id 
-                ? "Виберіть карту для скидання" 
-                : "Ваша рука"}
-            </div>
-          </div>
-        </div>
-
-        {/* Модальне вікно вибору кольору для чорної картини */}
-        {showColorPicker && (
-          <div className="color-picker-modal" style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}>
-            <ColorPicker onPick={handleColorPick} />
-          </div>
-        )}
-
-        {/* Модальне вікно з кубиком для карти Фортуно */}
-        {showDiceRoller && (
-          <div className="dice-roller-modal" style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-          }}>
-            <DiceRoller 
-              onResult={handleDiceResult} 
-              serverDiceResult={diceResult} 
-              onFinished={handleDiceFinished} 
+          {opponents.map((player, index) => (
+            <OpponentView 
+              key={player.id}
+              player={player}
+              position={index + 1}
+              isCurrentTurn={currentPlayerId === player.id}
+              totalPlayers={players.length}
             />
-          </div>
-        )}
+          ))}
+          
+          {/* Колода і скиди */}
+          <CardDeck
+            currentCard={currentCard}
+            onDrawCard={handleDrawCard}
+            isCurrentPlayerTurn={currentPlayerId === socket.id}
+          />
+          
+          {/* Рука гравця */}
+          <PlayerHand 
+            hand={hand} 
+            isCurrentPlayerTurn={currentPlayerId === socket.id}
+            onPlayCard={handlePlayCard}
+            chooseCardToDiscard={chooseCardToDiscard}
+          />
+        </GameTable>
+      </div>
+      
+      {/* Модальні вікна */}
+      {showColorPicker && (
+        <div className="modal-overlay">
+          <ColorPicker onPick={handleColorPick} />
+        </div>
+      )}
+      
+      {showDiceRoller && (
+        <div className="modal-overlay">
+          <DiceRoller 
+            onResult={handleDiceResult} 
+            serverDiceResult={diceResult} 
+            onFinished={handleDiceFinished} 
+          />
+        </div>
+      )}
+      
+      {/* Dev-панель (якщо потрібна) */}
+      <div className="dev-panel">
+        {gameStarted && <button onClick={() => socket.emit('devGiveCard', { roomId, value: 'ФортУно', color: 'black' })}>
+          Фортуно
+        </button>}
+        {gameStarted && <button onClick={() => socket.emit('devGiveCard', { roomId, value: 'Пропуск ходу', color: 'red' })}>
+          Пропуск
+        </button>}
       </div>
     </div>
   );
