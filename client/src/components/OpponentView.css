@@ -11,21 +11,21 @@
 
 /* Опонент зверху */
 .opponent-top {
-  top: 20px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
 }
 
 /* Опонент зліва */
 .opponent-left {
-  left: 20px;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
 }
 
 /* Опонент справа */
 .opponent-right {
-  right: 20px;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -78,64 +78,98 @@
 
 .opponent-cards {
   position: relative;
-  min-height: 60px;
-  min-width: 60px;
+  min-height: 165px;
+  min-width: 110px;
   display: flex;
+  justify-content: center;
+}
+
+/* Спеціальні стилі для різних позицій карт опонентів */
+.opponent-top-cards {
+  min-height: 180px; /* Збільшуємо висоту для карт опонента зверху */
+}
+
+.opponent-left-cards {
+  height: 300px; /* Збільшуємо простір для кращого центрування віяла */
+  width: 170px;
+  margin-left: 25px;
+  transform-origin: left center;
+  align-self: center; /* Додаткове центрування */
+}
+
+.opponent-right-cards {
+  height: 300px; /* Збільшуємо простір для кращого центрування віяла */
+  width: 170px;
+  margin-right: 25px;
+  transform-origin: right center;
+  align-self: center; /* Додаткове центрування */
+}
+
+/* Розташовуємо інформацію для бокових гравців */
+.opponent-left .opponent-info {
+  margin-left: 20px;
+}
+
+.opponent-right .opponent-info {
+  margin-right: 20px;
+}
+
+/* Центрування для бокових гравців */
+.opponent-left, .opponent-right {
+  display: flex;
+  flex-direction: column;
   justify-content: center;
 }
 
 .opponent-card {
   position: absolute;
-  width: 40px;
-  height: 60px;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  width: 110px;
+  height: 165px;
+  border-radius: 10px;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.4);
   transform-origin: center;
   transform: rotate(0);
-  background-color: transparent;
+  background-color: #000;
+  overflow: hidden;
 }
 
-.card-back {
+.card-back-img {
   width: 100%;
   height: 100%;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #22277a 0%, #2d2d44 100%);
-  border: 1px solid #433d7a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 1.3rem;
-  position: relative;
+  object-fit: contain;
+  display: block;
 }
 
-.card-back::after {
-  content: "?";
-  position: absolute;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-}
-
-/* Адаптивність для лівого та правого опонентів */
-.opponent-left .opponent-cards, 
-.opponent-right .opponent-cards {
-  transform: rotate(90deg);
-}
-
-/* Адаптація для малих екранів */
+/* Адаптивність для малих екранів */
 @media (max-width: 768px) {
   .opponent-card {
-    width: 35px;
-    height: 50px;
+    width: 80px;
+    height: 120px;
+  }
+  
+  .opponent-cards {
+    min-height: 120px;
+    min-width: 80px;
+  }
+  
+  .opponent-top-cards {
+    min-height: 135px;
+  }
+  
+  .opponent-left-cards,
+  .opponent-right-cards {
+    height: 240px;
+    width: 120px;
+    margin-left: 15px;
+    margin-right: 15px;
   }
   
   .opponent-left {
-    left: 10px;
+    left: 0;
   }
   
   .opponent-right {
-    right: 10px;
+    right: 0;
   }
   
   .opponent-avatar {
