@@ -55,6 +55,18 @@ const io = new Server(server, {
   }
 });
 
+// Допоміжна функція для відправки оновленого стану гравців всім у кімнаті
+function emitPlayersState(roomId) {
+  const state = gameStates[roomId];
+  if (!state) return;
+  const players = Object.keys(state.hands).map(pid => ({
+    id: pid,
+    name: pid,
+    handSize: state.hands[pid] ? state.hands[pid].length : 0
+  }));
+  io.to(roomId).emit('updatePlayers', { players });
+}
+
 // Обробка Socket.IO подій
 io.on('connection', (socket) => {
   console.log('Користувач підключився:', socket.id);
@@ -71,7 +83,16 @@ io.on('connection', (socket) => {
           console.log(`Гравець ${socket.id} приєднався до кімнати ${roomId}`);
         }
         socket.roomId = roomId;
-        io.to(roomId).emit('playerJoined', { players: room.players });
+        // Додаю handSize для кожного гравця, якщо гра вже стартувала
+        let playersList = room.players;
+        if (gameStates[roomId] && gameStates[roomId].hands) {
+          playersList = room.players.map(pid => ({
+            id: pid,
+            name: pid, // Можна замінити на справжнє ім'я, якщо є
+            handSize: gameStates[roomId].hands[pid] ? gameStates[roomId].hands[pid].length : 0
+          }));
+        }
+        io.to(roomId).emit('playerJoined', { players: playersList });
       }
     } catch (err) {
       console.error('Помилка приєднання до кімнати:', err);
@@ -116,7 +137,11 @@ io.on('connection', (socket) => {
     }
     // Оновлюємо стан столу для всіх
     io.to(roomId).emit('gameStarted', {
-      players: room.players,
+      players: room.players.map(pid => ({
+        id: pid,
+        name: pid,
+        handSize: hands[pid] ? hands[pid].length : 0
+      })),
       discardTop: discardPile[0]
     });
     
@@ -245,6 +270,9 @@ io.on('connection', (socket) => {
         });
       }
       
+      // Оновлюємо інформацію про кількість карт у всіх гравців
+      emitPlayersState(roomId);
+      
       // Перевіряємо, чи наступний гравець повинен пропустити хід
       const nextPlayerIndex = state.currentPlayerIndex;
       const nextPlayerId = playerIds[nextPlayerIndex];
@@ -298,6 +326,9 @@ io.on('connection', (socket) => {
       });
     }
     
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
+    
     // Оновити хід
     io.to(roomId).emit('turnChanged', {
       currentPlayerId: playerIds[state.currentPlayerIndex]
@@ -322,6 +353,9 @@ io.on('connection', (socket) => {
       hand: state.hands[currentPlayerId],
       discardTop: state.discardPile[state.discardPile.length - 1]
     });
+
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
 
     // Передати хід наступному
     state.currentPlayerIndex = getNextPlayerIndex(state);
@@ -377,6 +411,9 @@ io.on('connection', (socket) => {
       hand: state.hands[socket.id],
       discardTop: state.discardPile[state.discardPile.length - 1]
     });
+    
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
   });
 
   // Вихід з кімнати (явний)
@@ -523,6 +560,9 @@ io.on('connection', (socket) => {
         discardTop: state.discardPile[state.discardPile.length - 1]
       });
     }
+    
+    // Оновлюємо інформацію про кількість карт у всіх гравців
+    emitPlayersState(roomId);
     
     // Якщо дія не вимагає очікування додаткового вибору (випадок 4)
     if (diceResult !== 4) {

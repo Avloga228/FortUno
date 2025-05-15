@@ -52,6 +52,10 @@ export default function RoomPage() {
       setGameStarted(true); // Гра почалася — вимикаємо кнопку
     });
 
+    socket.on('updatePlayers', ({ players }) => {
+      setPlayers(players);
+    });
+
     // Додаємо обробник події кидання кубика Фортуно
     socket.on('fortunoDiceRolled', ({ diceResult, playerId }) => {
       // Зберігаємо результат кубика
@@ -98,6 +102,7 @@ export default function RoomPage() {
       socket.off('updateHandAndDiscard');
       socket.off('turnChanged');
       socket.off('gameStarted');
+      socket.off('updatePlayers');
       socket.off('fortunoDiceRolled');
       socket.off('chooseCardToDiscard');
       socket.off('actionBlocked');
@@ -255,6 +260,33 @@ export default function RoomPage() {
         </div>
 
         <div className="game-table">
+          {/* Опоненти */}
+          {(() => {
+            const opponents = players.filter(p => p.id !== socket.id);
+            const positions = [
+              'opponent-top',
+              'opponent-left',
+              'opponent-right'
+            ];
+            return opponents.map((player, idx) => {
+              let posClass = '';
+              if (opponents.length === 1) posClass = 'opponent-top';
+              if (opponents.length === 2) posClass = idx === 0 ? 'opponent-top' : 'opponent-left';
+              if (opponents.length === 3) posClass = positions[idx];
+              return (
+                <div key={player.id} className={`opponent ${posClass}`}>
+                  <div className="player-avatar">👤</div>
+                  <div className="player-name">{player.name || `Гравець`}</div>
+                  <div className="hand" style={{flexDirection: 'row', gap: 6}}>
+                    {Array.from({length: player.handSize ?? 0}).map((_, i) => (
+                      <div key={i} className="card" style={{background:'#111', border:'2px solid #222', width: 40, height: 60}} />
+                    ))}
+                  </div>
+                  <div className="cards-stack">{player.handSize ?? 0} карт</div>
+                </div>
+              );
+            });
+          })()}
           {/* Центральна область */}
           <div className="central-area">
             <div className="deck">
