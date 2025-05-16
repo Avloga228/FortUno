@@ -2,6 +2,12 @@ import React from "react";
 import "./OpponentView.css";
 
 const OpponentView = ({ player, position, isCurrentTurn, totalPlayers }) => {
+  // Safety check for invalid player data
+  if (!player || !player.id) {
+    console.warn("Invalid player data in OpponentView");
+    return null; // Don't render anything for invalid players
+  }
+
   // Визначення класу позиції опонента на основі загальної кількості гравців
   const getPositionClass = () => {
     // За замовчуванням (якщо не передано позицію)
@@ -29,7 +35,7 @@ const OpponentView = ({ player, position, isCurrentTurn, totalPlayers }) => {
     return "opponent-top"; // За замовчуванням
   };
 
-  // Перевірка, чи це хід опонента
+  // Перевірка, чи це хід опонента 
   const isPlayerTurn = isCurrentTurn === player.id;
   
   // Визначаємо кількість карт для відображення (максимум 20)
@@ -138,7 +144,7 @@ const OpponentView = ({ player, position, isCurrentTurn, totalPlayers }) => {
       <div className="opponent-info">
         <div className="opponent-name">
           {player.name || (player.id && typeof player.id === 'string' 
-            ? `Гравець ${player.id.substring(0, 4)}` 
+            ? `Гравець ${player.id}` 
             : `Гравець ${position}`)}
         </div>
         <div className="opponent-cards-count">

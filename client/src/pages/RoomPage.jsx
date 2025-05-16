@@ -1,6 +1,8 @@
 import React, { useEffect, useState, Component } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
+import { useAuth } from "../context/AuthContext";
+import AuthModal from "../components/AuthModal";
 
 // Імпортуємо компоненти
 import GameTable from "../components/GameTable";
@@ -51,6 +53,8 @@ class ErrorBoundary extends Component {
 
 export default function RoomPage() {
   const { roomId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   console.log(`RoomPage init: roomId=${roomId}`);
   
@@ -69,145 +73,399 @@ export default function RoomPage() {
   const [pageLoaded, setPageLoaded] = useState(false);
   const [roomExists, setRoomExists] = useState(true);
   const [devPanelExpanded, setDevPanelExpanded] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Перевірка авторизації при завантаженні
+  useEffect(() => {
+    if (!user && pageLoaded) {
+      setShowAuthModal(true);
+    }
+  }, [user, pageLoaded]);
+  
   // Перше завантаження - примусове оновлення через 1 секунду
   useEffect(() => {
+    console.log('RoomPage: Initial load effect running');
+    
+    // Check if we're coming from a redirect
+    const redirectToGame = localStorage.getItem('redirectToGame');
+    const currentRoomId = localStorage.getItem('currentRoomId');
+    
+    if (redirectToGame === 'true' && currentRoomId === roomId) {
+      console.log('RoomPage: Detected redirect from waiting room');
+      // Clear the redirect flag since we're now in the game
+      localStorage.removeItem('redirectToGame');
+      // Ensure game state is set
+      localStorage.setItem('inGameState', 'true');
+      // Set game as started if we're coming from redirect
+      setGameStarted(true);
+      
+      // Force a check for game state after a short delay
+      setTimeout(() => {
+        console.log('RoomPage: Forced check for game state after redirect');
+        // Trigger socket reconnection if needed
+        if (!socket.connected) {
+          socket.reconnectExplicit();
+        }
+        
+        // If we have a token, ensure we're authenticated and in the room
+        const token = localStorage.getItem('authToken');
+        if (token && user) {
+          socket.authenticateOnce(token);
+          socket.emit('joinRoom', roomId);
+          setHasJoinedRoom(true);
+        }
+      }, 500);
+    }
+    
     const timer = setTimeout(() => {
       setPageLoaded(true);
-      console.log('Сторінка повністю завантажена');
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    console.log(`Joining room: ${roomId}`);
-    socket.emit('joinRoom', roomId);
-    
-    socket.on('connect', () => {
-      console.log('Connected to server, socket ID:', socket.id);
-    });
-    
-    socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-    });
-
-    socket.on('playerJoined', (data) => {
-      console.log('Players in room:', data.players);
-      setPlayers(data.players);
-    });
-
-    socket.on('handDealt', ({ hand, discardTop }) => {
-      setHand(hand);
-      setCurrentCard(discardTop);
-    });
-
-    socket.on('updateHandAndDiscard', ({ hand, discardTop }) => {
-      setHand(hand);
-      setCurrentCard(discardTop);
-    });
-
-    socket.on('turnChanged', ({ currentPlayerId }) => {
-      setCurrentPlayerId(currentPlayerId);
-      // При зміні ходу ховаємо пікер, якщо він був відкритий
-      setShowColorPicker(false);
-      setPendingBlackCard(null);
-      // Ховаємо будь-які повідомлення про блокування
-      setActionBlockedMessage("");
-    });
-
-    socket.on('gameStarted', ({ discardTop, players }) => {
-      setCurrentCard(discardTop);
-      setPlayers(players);
-      setGameStarted(true); // Гра почалася — вимикаємо кнопку
-    });
-
-    socket.on('updatePlayers', ({ players }) => {
-      setPlayers(players);
-    });
-
-    // Додаємо обробник події кидання кубика Фортуно
-    socket.on('fortunoDiceRolled', ({ diceResult, playerId }) => {
-      // Зберігаємо результат кубика
-      setDiceResult(diceResult);
-      // Показуємо кубик усім гравцям
-      setShowDiceRoller(true);
-    });
-
-    // Додаємо обробник події вибору картини для скидання
-    socket.on('chooseCardToDiscard', () => {
-      setChooseCardToDiscard(true);
-    });
-
-    // Обробник блокування дій
-    socket.on('actionBlocked', ({ message }) => {
-      setActionBlockedMessage(message);
+      console.log('RoomPage: Page fully loaded');
       
-      // Автоматично ховаємо повідомлення через 3 секунди
+      // Перевірка авторизації після завантаження
+      if (!user) {
+        setShowAuthModal(true);
+      }
+      
+      // Mark that we are in the game (for handling browser navigation)
+      localStorage.setItem('inGameState', 'true');
+      localStorage.setItem('currentRoomId', roomId);
+      
+      // Hide loading indicator after a small delay
       setTimeout(() => {
-        setActionBlockedMessage("");
-      }, 3000);
-    });
-
-    // Обробник пропуску ходу
-    socket.on('turnSkipped', ({ skippedPlayerId, currentPlayerId }) => {
-      // Показуємо повідомлення про пропуск ходу
-      const isCurrentUser = skippedPlayerId === socket.id;
-      const message = isCurrentUser 
-        ? "Ви пропускаєте свій хід через карту Фортуно" 
-        : "Гравець пропускає свій хід через карту Фортуно";
-      
-      setTurnSkippedMessage(message);
-      
-      // Ховаємо повідомлення через 3 секунди
-      setTimeout(() => {
-        setTurnSkippedMessage("");
-      }, 3000);
-    });
-
-    // Додати після всіх обробників подій в useEffect
-    socket.on('error', (error) => {
-      console.error('Socket IO error:', error);
-      setActionBlockedMessage(`Помилка з'єднання: ${error.message || 'Невідома помилка'}`);
-      
-      // Ховаємо повідомлення через 5 секунд
-      setTimeout(() => {
-        setActionBlockedMessage("");
-      }, 5000);
-    });
+        setIsLoading(false);
+      }, 500);
+    }, 500); // Reduced timeout for faster loading
     
-    socket.on('connect_failed', () => {
-      console.error('Socket IO connection failed');
-      setActionBlockedMessage("Не вдалося підключитися до сервера");
-      
-      // Ховаємо повідомлення через 5 секунд
-      setTimeout(() => {
-        setActionBlockedMessage("");
-      }, 5000);
-    });
-
+    // Add a safety timeout to hide the loading indicator even if other events fail
+    const safetyTimer = setTimeout(() => {
+      if (isLoading) {
+        console.log('RoomPage: Safety timeout reached, forcing load completion');
+        setIsLoading(false);
+        // If we're still loading but timeout reached, force reload the page
+        if (!gameStarted && !currentCard) {
+          console.log('RoomPage: Game data not loaded, forcing page reload');
+          window.location.reload();
+        }
+      }
+    }, 5000);
+    
+    // Handle cleanup and browser navigation
     return () => {
-      console.log(`Leaving room: ${roomId}`);
-      socket.emit('leaveRoom', roomId);
+      clearTimeout(timer);
+      clearTimeout(safetyTimer);
+      
+      // If leaving the page, check if we should keep game state
+      // Remove the inGameState flag only if we're not navigating to waiting room
+      // or if leaving the app entirely
+      if (!window.location.pathname.includes('/waiting/') && 
+          !window.location.pathname.includes('/room/')) {
+        localStorage.removeItem('inGameState');
+      }
+    };
+  }, [user, roomId, isLoading, gameStarted, currentCard]);
+
+  // Prevent going back from active game with browser history
+  useEffect(() => {
+    // This function will be called when the component mounts
+    const blockHistoryNavigation = () => {
+      // Push additional history entry to prevent easy back navigation
+      window.history.pushState(null, '', window.location.pathname);
+      
+      // This handler will fire when user clicks back button
+      const handlePopState = (event) => {
+        // Prevent going back by pushing another state
+        window.history.pushState(null, '', window.location.pathname);
+        
+        // Show a message explaining they can't use the back button
+        alert('Щоб вийти з гри, використовуйте кнопку "Повернутись на головну"');
+      };
+      
+      // Add listener for popstate (back/forward buttons)
+      window.addEventListener('popstate', handlePopState);
+      
+      // Return cleanup function
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    };
+    
+    // Only block navigation if the game has started
+    let cleanup = null;
+    if (gameStarted) {
+      cleanup = blockHistoryNavigation();
+    }
+    
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [gameStarted]);
+
+  // Simplified socket connection and authentication
+  useEffect(() => {
+    console.log('RoomPage: Setting up socket connection');
+    
+    // Clear socket listeners to prevent duplicates
+    const cleanupSocketListeners = () => {
       socket.off('connect');
       socket.off('connect_error');
       socket.off('error');
       socket.off('connect_failed');
+      socket.off('authError');
       socket.off('playerJoined');
       socket.off('handDealt');
       socket.off('updateHandAndDiscard');
       socket.off('turnChanged');
       socket.off('gameStarted');
       socket.off('updatePlayers');
+      socket.off('playerLeft');
+      socket.off('playerTemporarilyLeft');
       socket.off('fortunoDiceRolled');
       socket.off('chooseCardToDiscard');
       socket.off('actionBlocked');
       socket.off('turnSkipped');
+      socket.off('roomNotFound');
+      socket.off('gameEnded');
     };
-  }, [roomId]);
+
+    // Clean up existing listeners
+    cleanupSocketListeners();
+
+    // Single authentication and join room function
+    const setupConnection = () => {
+      if (!user || hasJoinedRoom) return;
+
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      // First authenticate the socket (using the new method)
+      socket.authenticateOnce(token);
+
+      // Then join the room after a short delay
+      setTimeout(() => {
+        console.log(`RoomPage: Joining room: ${roomId}`);
+        socket.emit('joinRoom', roomId);
+        setHasJoinedRoom(true);
+        
+        // Store the current room ID in localStorage
+        localStorage.setItem('currentRoomId', roomId);
+      }, 200);
+    };
+
+    // Check if we're already in a game from a redirect
+    const checkRedirectFromGame = () => {
+      const redirectToGame = localStorage.getItem('redirectToGame');
+      if (redirectToGame === 'true') {
+        console.log('RoomPage: Coming from a game redirect, ensuring connection');
+        // Clear the redirect flag
+        localStorage.removeItem('redirectToGame');
+        
+        if (user && !hasJoinedRoom) {
+          // Force rejoin if we're coming from a redirect
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            socket.authenticateOnce(token);
+            setTimeout(() => {
+              console.log(`RoomPage: Forced join after redirect to room: ${roomId}`);
+              socket.emit('joinRoom', roomId);
+              setHasJoinedRoom(true);
+            }, 200);
+          }
+        }
+      }
+    };
+
+    // Run checks for redirect status
+    checkRedirectFromGame();
+
+    // Setup connection when component mounts
+    setupConnection();
+
+    // Handle connection events
+    socket.on('connect', () => {
+      console.log('Connected to server, socket ID:', socket.id);
+      
+      // Only re-join on reconnection if we were previously joined
+      if (user && hasJoinedRoom) {
+        console.log('Reconnected - re-authenticating...');
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          socket.authenticateOnce(token);
+          
+          // Small delay before rejoining the room
+          setTimeout(() => {
+            console.log(`Rejoining room after reconnection: ${roomId}`);
+            socket.emit('joinRoom', roomId);
+          }, 200);
+        }
+      } else {
+        setupConnection();
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
+
+    socket.on('roomNotFound', (data) => {
+      console.error('Room not found:', data.message);
+      setRoomExists(false);
+      setActionBlockedMessage('Кімната не існує');
+    });
+
+    socket.on('authError', (data) => {
+      console.error('Authentication error:', data.message);
+      setShowAuthModal(true);
+    });
+
+    // Game state events
+    socket.on('playerJoined', (data) => {
+      console.log('RoomPage: Players in room:', data.players);
+      setPlayers(data.players);
+    });
+
+    socket.on('handDealt', ({ hand, discardTop }) => {
+      console.log('RoomPage: Hand dealt received');
+      setHand(hand);
+      setCurrentCard(discardTop);
+      // If we received a hand, we're definitely in a game
+      setGameStarted(true);
+    });
+
+    socket.on('updateHandAndDiscard', ({ hand, discardTop }) => {
+      console.log('RoomPage: Hand updated');
+      setHand(hand);
+      setCurrentCard(discardTop);
+    });
+
+    socket.on('turnChanged', ({ currentPlayerId }) => {
+      console.log(`RoomPage: Turn changed to ${currentPlayerId}`);
+      setCurrentPlayerId(currentPlayerId);
+      setShowColorPicker(false);
+      setPendingBlackCard(null);
+      setActionBlockedMessage("");
+    });
+
+    socket.on('gameStarted', ({ discardTop, players }) => {
+      console.log('RoomPage: Game started event received', { discardTop, players });
+      if (discardTop) {
+        setCurrentCard(discardTop);
+      }
+      if (players && Array.isArray(players)) {
+        setPlayers(players);
+      }
+      setGameStarted(true);
+      
+      // Store room ID in localStorage when game starts
+      localStorage.setItem('currentRoomId', roomId);
+      localStorage.setItem('inGameState', 'true');
+    });
+
+    socket.on('updatePlayers', ({ players }) => {
+      setPlayers(players);
+    });
+
+    socket.on('playerLeft', ({ username, message }) => {
+      console.log(`Player left: ${username}`);
+      
+      // Display a notification that a player left
+      setActionBlockedMessage(message);
+      setTimeout(() => setActionBlockedMessage(""), 3000);
+      
+      // We'll get a full player update from the server via updatePlayers event
+      // This is just a backup filter in case that doesn't come through
+      setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== username));
+      
+      // Request updated player data from server
+      socket.emit('requestPlayerUpdate', { roomId });
+    });
+
+    socket.on('fortunoDiceRolled', ({ diceResult, playerId }) => {
+      setDiceResult(diceResult);
+      setShowDiceRoller(true);
+    });
+
+    socket.on('chooseCardToDiscard', () => {
+      setChooseCardToDiscard(true);
+    });
+
+    socket.on('actionBlocked', ({ message }) => {
+      setActionBlockedMessage(message);
+      setTimeout(() => {
+        setActionBlockedMessage("");
+      }, 3000);
+    });
+
+    socket.on('turnSkipped', ({ skippedPlayerId, currentPlayerId }) => {
+      const isCurrentUser = skippedPlayerId === socket.username;
+      const message = isCurrentUser 
+        ? "Ви пропускаєте свій хід через карту Фортуно" 
+        : "Гравець пропускає свій хід через карту Фортуно";
+      
+      setTurnSkippedMessage(message);
+      setTimeout(() => {
+        setTurnSkippedMessage("");
+      }, 3000);
+    });
+    
+    // Listen for game ended event (when only one player remains)
+    socket.on('gameEnded', ({ message }) => {
+      // Show message to the user
+      alert(message);
+      
+      // Redirect to home
+      localStorage.removeItem('inGameState');
+      localStorage.removeItem('currentRoomId');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    });
+
+    return () => {
+      // Send leave message once when unmounting (not an explicit exit)
+      if (hasJoinedRoom) {
+        console.log(`Leaving room: ${roomId}`);
+        socket.emit('leaveRoom', { roomId, isExplicitExit: false });
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('currentRoomId');
+      
+      // Clean up all listeners
+      cleanupSocketListeners();
+    };
+  }, [roomId, user, hasJoinedRoom]);
 
   // Додати ефект для перевірки існування кімнати
   useEffect(() => {
+    // Detect when user is about to navigate away from the room
+    const handleBeforeNavigate = (e) => {
+      const destination = e.target.pathname;
+      
+      // If we're navigating to the home page or any other non-game page
+      if (!destination.includes(`/room/${roomId}`) && 
+          !destination.includes(`/waiting/${roomId}`)) {
+        // Clear the game state so we don't try to rejoin
+        localStorage.removeItem('inGameState');
+        localStorage.removeItem('currentRoomId');
+        
+        // Tell server we're leaving the room (not an explicit exit)
+        if (socket && hasJoinedRoom) {
+          socket.emit('leaveRoom', { roomId, isExplicitExit: false });
+        }
+      }
+    };
+    
+    // Add listener for link clicks
+    const handleLinkClick = (e) => {
+      if (e.target.tagName === 'A') {
+        handleBeforeNavigate(e);
+      }
+    };
+    
+    document.addEventListener('click', handleLinkClick);
+    
     // Перевіряємо, чи існує кімната
     const checkRoomExists = async () => {
       try {
@@ -221,6 +479,12 @@ export default function RoomPage() {
         } else {
           console.log(`Кімната ${roomId} існує`);
           setRoomExists(true);
+          
+          // Check if game has not started yet, redirect to waiting room
+          if (!data.gameStarted) {
+            console.log('Гра ще не розпочалася, перенаправлення до залу очікування');
+            navigate(`/waiting/${roomId}`);
+          }
         }
       } catch (err) {
         console.error('Помилка перевірки кімнати:', err);
@@ -229,17 +493,17 @@ export default function RoomPage() {
     };
     
     checkRoomExists();
-  }, [roomId]);
+    
+    return () => {
+      document.removeEventListener('click', handleLinkClick);
+    };
+  }, [roomId, navigate]);
 
-  // Кнопка для старту гри
-  const handleStartGame = () => {
-    socket.emit('startGame', roomId);
-    setGameStarted(true); // Вимикаємо кнопку одразу після натискання
-  };
+
 
   // Клік по картці для викладання або скидання
   const handlePlayCard = (cardOrIndex, isDiscard = false) => {
-    if (currentPlayerId !== socket.id) return;
+    if (currentPlayerId !== user?.username) return;
     
     if (isDiscard) {
       // Скидання карти для ефекту Фортуно №4 (-1 карта)
@@ -281,16 +545,25 @@ export default function RoomPage() {
 
   // Взяти карту з колоди
   const handleDrawCard = () => {
-    if (currentPlayerId !== socket.id) return;
+    if (currentPlayerId !== user?.username) return;
     socket.emit('drawCard', { roomId });
   };
 
-  // Фільтруємо опонентів (всі гравці, крім поточного)
-  const opponents = players.filter(p => p.id !== socket.id);
+  // Фільтруємо опонентів (всі гравці, крім поточного) і забираємо undefined/null
+  const opponents = players.filter(p => p && p.id && p.id !== user?.username);
 
   // Функція для розгортання/згортання панелі розробника
   const toggleDevPanel = () => {
     setDevPanelExpanded(!devPanelExpanded);
+  };
+
+  // Callback для успішної авторизації
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    // Приєднатися до кімнати після авторизації
+    if (roomId) {
+      socket.emit('joinRoom', roomId);
+    }
   };
 
   // Додати умовний рендерінг компонентів на основі існування кімнати
@@ -308,19 +581,40 @@ export default function RoomPage() {
     );
   }
 
+  // Add a button to safely leave the game
+  const handleLeaveGame = () => {
+    // Leave the room with explicit exit flag
+    if (socket && hasJoinedRoom) {
+      socket.emit('leaveRoom', { roomId, isExplicitExit: true });
+    }
+    
+    // Clear game state
+    localStorage.removeItem('inGameState');
+    localStorage.removeItem('currentRoomId');
+    
+    // Return to home
+    window.location.href = '/';
+  };
+
   return (
     <ErrorBoundary>
       <div className="game-page">
+        {isLoading && (
+          <div className="loading-overlay">
+            <div className="loading-spinner"></div>
+            <div className="loading-text">Завантаження гри...</div>
+          </div>
+        )}
+        
         {/* Шапка гри */}
         <ErrorBoundary>
           <GameHeader 
             roomId={roomId}
             playersCount={players.length}
-            isCurrentPlayerTurn={currentPlayerId === socket.id}
+            isCurrentPlayerTurn={currentPlayerId === user?.username}
             actionBlockedMessage={actionBlockedMessage}
             turnSkippedMessage={turnSkippedMessage}
-            onStartGame={handleStartGame}
-            isGameStarted={gameStarted}
+            onLeaveGame={handleLeaveGame}
           />
         </ErrorBoundary>
         
@@ -328,12 +622,12 @@ export default function RoomPage() {
         <div className="game-area">
           {/* Опоненти — позиціонуються абсолютно відносно game-area */}
           {opponents.map((player, index) => (
-            <ErrorBoundary key={`opponent-boundary-${index}`}>
+            <ErrorBoundary key={`opponent-boundary-${player.id || index}`}>
               <OpponentView 
                 key={player.id || `opponent-${index}`}
-                player={player || {}}
+                player={player}
                 position={index + 1}
-                isCurrentTurn={currentPlayerId === (player && player.id)}
+                isCurrentTurn={currentPlayerId === player.id}
                 totalPlayers={players.length}
               />
             </ErrorBoundary>
@@ -343,7 +637,7 @@ export default function RoomPage() {
           <ErrorBoundary>
             <PlayerHand 
               hand={hand} 
-              isCurrentPlayerTurn={currentPlayerId === socket.id}
+              isCurrentPlayerTurn={currentPlayerId === user?.username}
               onPlayCard={handlePlayCard}
               chooseCardToDiscard={chooseCardToDiscard}
             />
@@ -355,7 +649,7 @@ export default function RoomPage() {
               <CardDeck
                 currentCard={currentCard}
                 onDrawCard={handleDrawCard}
-                isCurrentPlayerTurn={currentPlayerId === socket.id}
+                isCurrentPlayerTurn={currentPlayerId === user?.username}
               />
             </GameTable>
           </ErrorBoundary>
@@ -419,6 +713,18 @@ export default function RoomPage() {
             </>
           )}
         </div>
+
+        {/* AuthModal for non-authenticated users */}
+        <AuthModal 
+          isOpen={showAuthModal} 
+          onClose={() => {
+            // Redirect to home if user cancels authentication
+            navigate('/');
+          }} 
+          onSuccess={handleAuthSuccess}
+        />
+
+
       </div>
     </ErrorBoundary>
   );

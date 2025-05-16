@@ -1,0 +1,165 @@
+.room-list-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.room-list-content {
+  background: linear-gradient(to bottom, #134e5e, #71b280);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.room-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.room-list-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.close-btn, .refresh-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover, .refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.refresh-btn {
+  font-size: 1rem;
+  margin-right: 10px;
+  padding: 8px 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.loading, .error, .no-rooms {
+  padding: 30px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.rooms-container {
+  padding: 15px;
+  overflow-y: auto;
+  max-height: calc(80vh - 80px);
+}
+
+.rooms-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.rooms-table th, .rooms-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rooms-table th {
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.rooms-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.join-room-btn {
+  background: linear-gradient(135deg, #43cea2, #185a9d);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.join-room-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #3cb371, #1e90ff);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.join-room-btn.disabled {
+  background: #888888;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Game status styles */
+.game-status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.game-status.waiting {
+  background-color: #43cea2;
+  color: #000;
+}
+
+.game-status.started {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Highlight row of games that have already started */
+tr.game-started {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+tr.game-started:hover {
+  background-color: rgba(244, 67, 54, 0.2);
+}
+
+@media (max-width: 768px) {
+  .room-list-content {
+    width: 95%;
+    max-height: 85vh;
+  }
+  
+  .rooms-table th, .rooms-table td {
+    padding: 10px;
+  }
+  
+  .room-list-header h2 {
+    font-size: 1.5rem;
+  }
+} 

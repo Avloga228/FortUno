@@ -7,8 +7,7 @@ const GameHeader = ({
   isCurrentPlayerTurn, 
   actionBlockedMessage, 
   turnSkippedMessage,
-  onStartGame,
-  isGameStarted
+  onLeaveGame
 }) => {
   return (
     <div className="game-header">
@@ -44,11 +43,10 @@ const GameHeader = ({
         </div>
         
         <button 
-          className="start-game-btn"
-          onClick={onStartGame} 
-          disabled={isGameStarted || playersCount < 2}
+          className="leave-game-btn"
+          onClick={onLeaveGame}
         >
-          Старт гри
+          Вийти з гри
         </button>
       </div>
     </div>
