@@ -288,15 +288,26 @@ const io = new Server(server, {
 });
 
 // Допоміжна функція для відправки оновленого стану гравців всім у кімнаті
-function emitPlayersState(roomId) {
-  const state = gameStates[roomId];
-  if (!state) return;
-  const players = Object.keys(state.hands).map(username => ({
-    id: username,
-    name: username,
-    handSize: state.hands[username] ? state.hands[username].length : 0
-  }));
-  io.to(roomId).emit('updatePlayers', { players });
+async function emitPlayersState(roomId) {
+  try {
+    const state = gameStates[roomId];
+    if (!state) return;
+    
+    // Get the current room data from the database to ensure we have the latest players list
+    const room = await Room.findOne({ roomId });
+    if (!room) return;
+    
+    // Use the database player list as the source of truth
+    const players = room.players.map(username => ({
+      id: username,
+      name: username,
+      handSize: state.hands[username] ? state.hands[username].length : 0
+    }));
+    
+    io.to(roomId).emit('updatePlayers', { players });
+  } catch (err) {
+    console.error('Error in emitPlayersState:', err);
+  }
 }
 
 // Add a global map to track completely disconnected players
@@ -708,30 +719,38 @@ io.on('connection', (socket) => {
       // Now that the game state is fully prepared, redirect clients to the game room
       console.log(`🔄 Підготовка перенаправлення до ігрової кімнати ${roomId}`);
       
-      // Redirect with a short delay to ensure all state is properly initialized
-      // Increased delay to give clients time to process game state events
-      setTimeout(() => {
+      // More aggressive redirection strategy with multiple attempts
+      const sendRedirects = (attempts = 1) => {
         // First verify that the room still exists
         Room.findOne({ roomId }).then(roomCheck => {
           if (roomCheck && roomCheck.gameStarted) {
-            console.log(`🔄 Відправляємо клієнтам перенаправлення до ігрової кімнати ${roomId}`);
+            console.log(`🔄 Спроба #${attempts}: Відправляємо перенаправлення до ігрової кімнати ${roomId}`);
+            
+            // Send to all sockets in the room
             io.to(roomId).emit('redirectToGameRoom', { roomId });
             
-            // Double-check after another short delay to ensure redirect was received
-            setTimeout(() => {
-              // Get all sockets in the room
-              io.in(roomId).fetchSockets().then(sockets => {
-                if (sockets.length > 0) {
-                  console.log(`🔄 Повторне відправлення перенаправлення для ${sockets.length} клієнтів у кімнаті ${roomId}`);
-                  io.to(roomId).emit('redirectToGameRoom', { roomId });
-                }
-              }).catch(err => console.error('Помилка при отриманні сокетів для повторного перенаправлення:', err));
-            }, 2000);
+            // Get all sockets to make sure they receive the redirect
+            io.in(roomId).fetchSockets().then(sockets => {
+              // Send individually to each socket as a backup
+              sockets.forEach(s => {
+                s.emit('redirectToGameRoom', { roomId });
+              });
+              
+              console.log(`🔄 Відправлено індивідуальні редіректи для ${sockets.length} гравців`);
+              
+              // Schedule another attempt with increasing delay if we haven't reached max attempts
+              if (attempts < 3) {
+                setTimeout(() => sendRedirects(attempts + 1), attempts * 1000);
+              }
+            });
           } else {
             console.log(`⚠️ Кімната ${roomId} більше не існує або гра не розпочата, пропускаємо перенаправлення`);
           }
         }).catch(err => console.error('Помилка при перевірці кімнати перед перенаправленням:', err));
-      }, 1000);
+      };
+      
+      // Start sending redirects with a short initial delay
+      setTimeout(() => sendRedirects(), 500);
     } catch (err) {
       console.error('Помилка при старті гри:', err);
     }
@@ -883,15 +902,18 @@ io.on('connection', (socket) => {
           state.currentPlayerIndex = await getNextPlayerIndex(state, roomId);
       }
       
-      // Оновити руки всім гравцям
-      for (const playerId in state.hands) {
-          // Знаходимо сокет-ід гравця за його нікнеймом
-          const playerSocketId = findSocketIdByUsername(playerId);
-          if (playerSocketId) {
-            io.to(playerSocketId).emit('updateHandAndDiscard', {
-          hand: state.hands[playerId],
-          discardTop: card
-        });
+      // Оновити руки всім гравцям - використовуємо список гравців з БД
+      for (const playerId of room.players) {
+          // Перевіряємо, чи є для цього гравця рука в стані гри
+          if (state.hands[playerId]) {
+            // Знаходимо сокет-ід гравця за його нікнеймом
+            const playerSocketId = findSocketIdByUsername(playerId);
+            if (playerSocketId) {
+              io.to(playerSocketId).emit('updateHandAndDiscard', {
+                hand: state.hands[playerId],
+                discardTop: card
+              });
+            }
           }
       }
       
@@ -984,7 +1006,7 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Додаємо подію для взяття картини з колоди
+    // Додаємо подію для взяття картини з колоди
   socket.on('drawCard', async ({ roomId }) => {
     const state = gameStates[roomId];
     if (!state) return;
@@ -1016,9 +1038,9 @@ io.on('connection', (socket) => {
       const currentPlayerSocketId = findSocketIdByUsername(currentPlayerId);
       if (currentPlayerSocketId) {
         io.to(currentPlayerSocketId).emit('updateHandAndDiscard', {
-      hand: state.hands[currentPlayerId],
-      discardTop: state.discardPile[state.discardPile.length - 1]
-    });
+          hand: state.hands[currentPlayerId],
+          discardTop: state.discardPile[state.discardPile.length - 1]
+        });
       }
 
     // Оновлюємо інформацію про кількість карт у всіх гравців
@@ -1175,27 +1197,70 @@ io.on('connection', (socket) => {
   });
   
   // Розробницька функція: зробити хід поточного гравця
-  socket.on('devSetMyTurn', ({ roomId }) => {
+  socket.on('devSetMyTurn', async ({ roomId }) => {
     const state = gameStates[roomId];
     if (!state) return;
     
-    // Знаходимо індекс поточного гравця
-    const playerIds = Object.keys(state.hands);
-    const currentIndex = playerIds.indexOf(socket.username);
-    
-    if (currentIndex === -1) return; // Гравець не знайдений
-    
-    // Встановлюємо поточний хід на цього гравця
-    state.currentPlayerIndex = currentIndex;
-    
-    // Оновлюємо інформацію про хід для всіх гравців
-    io.to(roomId).emit('turnChanged', {
-      currentPlayerId: socket.username
-    });
+    try {
+      // Get the room to access players list from database
+      const room = await Room.findOne({ roomId });
+      if (!room) {
+        console.warn(`⚠️ Кімната ${roomId} не знайдена для devSetMyTurn`);
+        return;
+      }
+      
+      // Знаходимо індекс поточного гравця в кімнаті з БД
+      const currentIndex = room.players.indexOf(socket.username);
+      
+      if (currentIndex === -1) return; // Гравець не знайдений
+      
+      // Встановлюємо поточний хід на цього гравця
+      state.currentPlayerIndex = currentIndex;
+      
+      // Оновлюємо інформацію про хід для всіх гравців
+      io.to(roomId).emit('turnChanged', {
+        currentPlayerId: socket.username
+      });
+    } catch (err) {
+      console.error('Помилка devSetMyTurn:', err);
+    }
+  });
+
+  // Handler for requesting updated player data
+  socket.on('requestPlayerUpdate', async ({ roomId }) => {
+    try {
+      const room = await Room.findOne({ roomId });
+      if (!room) {
+        console.warn(`⚠️ Room ${roomId} not found for player update request`);
+        return;
+      }
+
+      const state = gameStates[roomId];
+      if (!state) {
+        console.warn(`⚠️ Game state for ${roomId} not found for player update request`);
+        return;
+      }
+
+      // Create player list with hand sizes
+      const updatedPlayers = room.players.map(username => ({
+        id: username,
+        name: username,
+        handSize: state.hands[username]?.length || 0
+      }));
+
+      // Send updated player list
+      socket.emit('updatePlayers', { players: updatedPlayers });
+      console.log(`📋 Sent updated player list to ${socket.username}`);
+    } catch (err) {
+      console.error('Error in requestPlayerUpdate:', err);
+    }
   });
 
   // Вихід з кімнати (явний)
-  socket.on('leaveRoom', async (roomId) => {
+  socket.on('leaveRoom', async (data) => {
+    // Handle both formats for backward compatibility
+    const roomId = typeof data === 'string' ? data : data.roomId;
+    const isExplicitExit = data.isExplicitExit === true;
     try {
       console.log(`🚪 Спроба виходу з кімнати ${roomId}, гравець: ${socket.username || 'неавторизований'}`);
       
@@ -1240,39 +1305,119 @@ io.on('connection', (socket) => {
         }
         
         if (room.players.includes(socket.username)) {
-          // IMPORTANT: In an active game, don't actually remove player from the room database
-          // This allows them to rejoin the same game if they accidentally leave
+          // Log if this is an explicit exit
+          console.log(`${isExplicitExit ? '🚪 Повний вихід' : '🔄 Тимчасовий вихід'} для гравця ${socket.username}`);
+          
           if (room.gameStarted) {
-            console.log(`🎮 Активна гра: гравець ${socket.username} тимчасово вийшов з кімнати ${roomId}`);
-            
-            // Add player to the disconnected players list
-            if (!disconnectedPlayers.has(roomId)) {
-              disconnectedPlayers.set(roomId, new Set());
-            }
-            disconnectedPlayers.get(roomId).add(socket.username);
-            
-            console.log(`👥 Відстежуємо відключених гравців для кімнати ${roomId}: ${Array.from(disconnectedPlayers.get(roomId))}`);
-            
-            // Just leave the socket but keep player in the database
-            socket.leave(roomId);
-            socket.roomId = null;
-            
-            // Notify others that this player has temporarily left
-            io.to(roomId).emit('playerTemporarilyLeft', { 
-              username: socket.username,
-              message: `Гравець ${socket.username} тимчасово вийшов з гри`
-            });
-            
-            // Check if all players have disconnected
-            if (disconnectedPlayers.has(roomId) && 
-                disconnectedPlayers.get(roomId).size === room.players.length) {
-              console.log(`🏁 Всі гравці (${room.players.length}) відключилися з кімнати ${roomId}, видаляємо кімнату`);
-              await Room.deleteOne({ roomId });
-              disconnectedPlayers.delete(roomId);
-              delete gameStates[roomId];
-              console.log(`🗑️ Кімната ${roomId} видалена (всі гравці вийшли)`);
+            if (isExplicitExit) {
+              // EXPLICIT EXIT: Completely remove player from room (can't rejoin)
+              console.log(`🚪 Гравець ${socket.username} повністю виходить з кімнати ${roomId}`);
+              
+              // Remove player from the room database
+              room.players = room.players.filter(id => id !== socket.username);
+              await room.save();
+              
+              // IMPORTANT: Also update the game state to remove the player
+              if (gameStates[roomId]) {
+                // Remove the player from hands
+                if (gameStates[roomId].hands) {
+                  delete gameStates[roomId].hands[socket.username];
+                }
+                
+                // Adjust the current player index if needed
+                if (gameStates[roomId].currentPlayerIndex >= room.players.length) {
+                  gameStates[roomId].currentPlayerIndex = 0;
+                }
+              }
+              
+              // Leave the socket
+              socket.leave(roomId);
+              socket.roomId = null;
+              
+              // Flag has been processed
+              
+              // Notify others that this player has left permanently
+              io.to(roomId).emit('playerLeft', { 
+                username: socket.username,
+                message: `Гравець ${socket.username} вийшов з гри`
+              });
+              
+              // Update player list for remaining players with hand sizes
+              const updatedPlayers = room.players.map(username => ({
+                id: username,
+                name: username,
+                handSize: gameStates[roomId]?.hands[username]?.length || 0
+              }));
+              
+              io.to(roomId).emit('updatePlayers', { 
+                players: updatedPlayers
+              });
+              
+                              // Check if only one player remains, end game and delete room
+                if (room.players.length === 1) {
+                  console.log(`🏁 Залишився тільки один гравець у кімнаті ${roomId}, завершуємо гру`);
+                  
+                  // Notify the last player that the game is ending
+                  io.to(roomId).emit('gameEnded', { 
+                    message: 'Гра завершена. Всі інші гравці вийшли.'
+                  });
+                  
+                  // Delete the room
+                  await Room.deleteOne({ roomId });
+                  delete gameStates[roomId];
+                  console.log(`🗑️ Кімната ${roomId} видалена (залишився один гравець)`);
+                } else {
+                  // If game continues, make sure the current player is valid
+                  if (gameStates[roomId]) {
+                    // If current player was the one who left, update turn
+                    const currentState = gameStates[roomId];
+                    const currentPlayerIdx = currentState.currentPlayerIndex;
+                    
+                    if (currentPlayerIdx >= room.players.length || 
+                        room.players[currentPlayerIdx] === socket.username) {
+                      // Current player left or index is invalid, update turn
+                      currentState.currentPlayerIndex = currentState.currentPlayerIndex % room.players.length;
+                      
+                      // Notify about turn change
+                      io.to(roomId).emit('turnChanged', {
+                        currentPlayerId: room.players[currentState.currentPlayerIndex]
+                      });
+                    }
+                  }
+                }
             } else {
-              console.log(`👋 Гравець ${socket.username} тимчасово покинув кімнату ${roomId} (залишається в базі)`);
+              // TEMPORARY LEAVE (refresh/navigation): Allow rejoining
+              console.log(`🎮 Активна гра: гравець ${socket.username} тимчасово вийшов з кімнати ${roomId}`);
+              
+              // Add player to the disconnected players list
+              if (!disconnectedPlayers.has(roomId)) {
+                disconnectedPlayers.set(roomId, new Set());
+              }
+              disconnectedPlayers.get(roomId).add(socket.username);
+              
+              console.log(`👥 Відстежуємо відключених гравців для кімнати ${roomId}: ${Array.from(disconnectedPlayers.get(roomId))}`);
+              
+              // Just leave the socket but keep player in the database
+              socket.leave(roomId);
+              socket.roomId = null;
+              
+              // Notify others that this player has temporarily left
+              io.to(roomId).emit('playerTemporarilyLeft', { 
+                username: socket.username,
+                message: `Гравець ${socket.username} тимчасово вийшов з гри`
+              });
+              
+              // Check if all players have disconnected
+              if (disconnectedPlayers.has(roomId) && 
+                  disconnectedPlayers.get(roomId).size === room.players.length) {
+                console.log(`🏁 Всі гравці (${room.players.length}) відключилися з кімнати ${roomId}, видаляємо кімнату`);
+                await Room.deleteOne({ roomId });
+                disconnectedPlayers.delete(roomId);
+                delete gameStates[roomId];
+                console.log(`🗑️ Кімната ${roomId} видалена (всі гравці вийшли)`);
+              } else {
+                console.log(`👋 Гравець ${socket.username} тимчасово покинув кімнату ${roomId} (залишається в базі)`);
+              }
             }
             
             return;
@@ -1524,15 +1669,18 @@ io.on('connection', (socket) => {
     // Видаляємо очікуючий ефект
     delete state.pendingFortunoEffect;
     
-    // Оновлюємо руки всім гравцям
-    for (const playerId in state.hands) {
-        // Знаходимо сокет-ід гравця за нікнеймом
-        const playerSocketId = findSocketIdByUsername(playerId);
-        if (playerSocketId) {
-          io.to(playerSocketId).emit('updateHandAndDiscard', {
-        hand: state.hands[playerId],
-        discardTop: state.discardPile[state.discardPile.length - 1]
-      });
+    // Оновлюємо руки всім гравцям - використовуємо список гравців з БД
+    for (const playerId of room.players) {
+        // Перевіряємо, чи є для цього гравця рука в стані гри
+        if (state.hands[playerId]) {
+          // Знаходимо сокет-ід гравця за нікнеймом
+          const playerSocketId = findSocketIdByUsername(playerId);
+          if (playerSocketId) {
+            io.to(playerSocketId).emit('updateHandAndDiscard', {
+              hand: state.hands[playerId],
+              discardTop: state.discardPile[state.discardPile.length - 1]
+            });
+          }
         }
     }
     
