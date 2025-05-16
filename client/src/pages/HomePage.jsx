@@ -113,8 +113,18 @@ export default function HomePage() {
   return (
     <div className="main-bg custom-home-bg">
       <div className="main-content">
-        <div className="logo-container">
-          <img src="/img/logo.webp" alt="FortUno" className="logo-image" />
+        <div className="header-container">
+          {user ? (
+            <div className="login-button user-info">
+              <span className="username"> {user.username}</span>
+              <button onClick={logout} className="top-login-btn">Вийти</button>
+            </div>
+          ) : (
+            <button className="top-login-btn" onClick={() => setIsAuthModalOpen(true)}>Увійти</button>
+          )}
+          <div className="logo-container">
+            <img src="/img/logo.webp" alt="FortUno" className="logo-image" />
+          </div>
         </div>
         <div className="menu-buttons">
           <button className="main-btn join-btn" onClick={handleJoin}>Приєднатися до гри</button>
@@ -122,16 +132,6 @@ export default function HomePage() {
           <button className="main-btn" disabled>Інструкція</button>
           <button className="main-btn" disabled>Таблиця лідерів</button>
         </div>
-      </div>
-      <div className="bottom-bar">
-        {user ? (
-          <div className="user-info">
-            <span className="username">Привіт, {user.username}!</span>
-            <button onClick={logout} className="bottom-btn left-btn">Вийти</button>
-          </div>
-        ) : (
-          <button className="bottom-btn left-btn" onClick={() => setIsAuthModalOpen(true)}>Увійти</button>
-        )}
       </div>
       
       {/* Auth Modal */}
