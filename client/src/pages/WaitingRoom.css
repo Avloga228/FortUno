@@ -1,0 +1,165 @@
+.waiting-room {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.waiting-room h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.waiting-room h2 {
+  font-size: 24px;
+  color: #576CBC;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f0f2f5;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.room-info {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.copy-button {
+  padding: 10px 20px;
+  background-color: #576CBC;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.copy-button:hover {
+  background-color: #394867;
+}
+
+.copy-success {
+  color: #4CAF50;
+  font-weight: bold;
+  animation: fadeOut 2s forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.players-list {
+  background-color: #f0f2f5;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.players-list h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+.players-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.players-list li {
+  padding: 12px;
+  margin-bottom: 5px;
+  background-color: white;
+  border-radius: 5px;
+  font-size: 18px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.waiting-message {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #fffde7;
+  border-radius: 8px;
+  border-left: 5px solid #ffd54f;
+}
+
+.waiting-message p {
+  margin: 5px 0;
+  color: #5d4037;
+}
+
+.waiting-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.start-game-btn {
+  padding: 15px 30px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.start-game-btn:hover:not(.disabled) {
+  background-color: #3e8e41;
+}
+
+.start-game-btn.disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.leave-room-btn {
+  padding: 15px 30px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.3s;
+}
+
+.leave-room-btn:hover {
+  background-color: #d32f2f;
+}
+
+.waiting-room.error {
+  text-align: center;
+  color: #d32f2f;
+}
+
+.waiting-room.error button {
+  padding: 10px 20px;
+  background-color: #576CBC;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.waiting-room.error button:hover {
+  background-color: #394867;
+} 
