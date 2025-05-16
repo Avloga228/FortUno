@@ -86,55 +86,16 @@ export default function HomePage() {
     }
   };
 
-  const handleJoin = async () => {
-    // Save action type for post-login redirection
-    setActionType('join');
-    
-    // Check if user is logged in
+  const handleJoin = () => {
+    // Перевіряємо чи користувач авторизований
     if (!user) {
+      setActionType('join');
       setIsAuthModalOpen(true);
       return;
     }
-
-    promptRoomCode();
-  };
-
-  const promptRoomCode = async () => {
-    const code = prompt('Введіть код кімнати:');
-    if (code) {
-      try {
-        const response = await fetch(`http://localhost:5000/api/rooms/${code}`);
-        const data = await response.json();
-        if (data.exists) {
-          // Store room ID in localStorage
-          localStorage.setItem('currentRoomId', code);
-          
-          // Authenticate socket before navigation
-          const token = localStorage.getItem('authToken');
-          if (token) {
-            socket.authenticateOnce(token);
-            
-            // Small delay to ensure authentication completes
-            setTimeout(() => {
-              // Check if game has already started
-              if (data.gameStarted) {
-                // If game already started, go directly to game room
-          navigate(`/room/${code}`);
-              } else {
-                // If game hasn't started yet, go to waiting room
-                navigate(`/waiting/${code}`);
-              }
-            }, 300);
-          } else {
-            navigate(`/waiting/${code}`);
-          }
-        } else {
-          alert('Кімнати з таким кодом не існує!');
-        }
-      } catch (err) {
-        alert('Помилка приєднання до кімнати!');
-      }
-    }
+    
+    // Показуємо список доступних ігор
+    setIsRoomListOpen(true);
   };
 
   // Callback for successful login/registration
@@ -145,17 +106,8 @@ export default function HomePage() {
     if (actionType === 'host') {
       handleHost();
     } else if (actionType === 'join') {
-      promptRoomCode();
+      setIsRoomListOpen(true);
     }
-  };
-
-  const handleShowRoomList = () => {
-    if (!user) {
-      setActionType('');
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setIsRoomListOpen(true);
   };
 
   return (
@@ -180,12 +132,6 @@ export default function HomePage() {
         ) : (
           <button className="bottom-btn left-btn" onClick={() => setIsAuthModalOpen(true)}>Увійти</button>
         )}
-        <button 
-          className="bottom-btn right-btn" 
-          onClick={handleShowRoomList}
-        >
-          Список відкритих ігор
-        </button>
       </div>
       
       {/* Auth Modal */}
