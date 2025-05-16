@@ -161,20 +161,8 @@ export default function HomePage() {
   return (
     <div className="main-bg custom-home-bg">
       <div className="main-content">
-        <h1 className="main-title">FORTUNO</h1>
-        <div className="cards-svg">
-          <svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="10" y="20" width="60" height="40" rx="8" fill="#185a9d" stroke="#fff" strokeWidth="4"/>
-            <rect x="25" y="10" width="60" height="40" rx="8" fill="#ff6f61" stroke="#fff" strokeWidth="4"/>
-            <rect x="35" y="25" width="60" height="40" rx="8" fill="#43cea2" stroke="#fff" strokeWidth="4"/>
-            <rect x="50" y="15" width="60" height="40" rx="8" fill="#ffe066" stroke="#fff" strokeWidth="4"/>
-            <ellipse cx="65" cy="35" rx="22" ry="15" fill="#fff"/>
-            <path d="M65 20 A15 15 0 0 1 80 35 A15 15 0 0 1 65 50 A15 15 0 0 1 50 35 A15 15 0 0 1 65 20 Z" fill="#43cea2"/>
-            <path d="M65 20 A15 15 0 0 1 80 35 L65 35 Z" fill="#ff6f61"/>
-            <path d="M80 35 A15 15 0 0 1 65 50 L65 35 Z" fill="#ffe066"/>
-            <path d="M65 50 A15 15 0 0 1 50 35 L65 35 Z" fill="#185a9d"/>
-            <path d="M50 35 A15 15 0 0 1 65 20 L65 35 Z" fill="#fff"/>
-          </svg>
+        <div className="logo-container">
+          <img src="/img/logo.webp" alt="FortUno" className="logo-image" />
         </div>
         <div className="menu-buttons">
           <button className="main-btn join-btn" onClick={handleJoin}>Приєднатися до гри</button>
