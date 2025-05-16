@@ -100,6 +100,23 @@ export default function RoomPage() {
       localStorage.setItem('inGameState', 'true');
       // Set game as started if we're coming from redirect
       setGameStarted(true);
+      
+      // Force a check for game state after a short delay
+      setTimeout(() => {
+        console.log('RoomPage: Forced check for game state after redirect');
+        // Trigger socket reconnection if needed
+        if (!socket.connected) {
+          socket.reconnectExplicit();
+        }
+        
+        // If we have a token, ensure we're authenticated and in the room
+        const token = localStorage.getItem('authToken');
+        if (token && user) {
+          socket.authenticateOnce(token);
+          socket.emit('joinRoom', roomId);
+          setHasJoinedRoom(true);
+        }
+      }, 500);
     }
     
     const timer = setTimeout(() => {
@@ -202,11 +219,14 @@ export default function RoomPage() {
       socket.off('turnChanged');
       socket.off('gameStarted');
       socket.off('updatePlayers');
+      socket.off('playerLeft');
+      socket.off('playerTemporarilyLeft');
       socket.off('fortunoDiceRolled');
       socket.off('chooseCardToDiscard');
       socket.off('actionBlocked');
       socket.off('turnSkipped');
       socket.off('roomNotFound');
+      socket.off('gameEnded');
     };
 
     // Clean up existing listeners
@@ -328,9 +348,13 @@ export default function RoomPage() {
     });
 
     socket.on('gameStarted', ({ discardTop, players }) => {
-      console.log('RoomPage: Game started event received');
-      setCurrentCard(discardTop);
-      setPlayers(players);
+      console.log('RoomPage: Game started event received', { discardTop, players });
+      if (discardTop) {
+        setCurrentCard(discardTop);
+      }
+      if (players && Array.isArray(players)) {
+        setPlayers(players);
+      }
       setGameStarted(true);
       
       // Store room ID in localStorage when game starts
@@ -340,6 +364,21 @@ export default function RoomPage() {
 
     socket.on('updatePlayers', ({ players }) => {
       setPlayers(players);
+    });
+
+    socket.on('playerLeft', ({ username, message }) => {
+      console.log(`Player left: ${username}`);
+      
+      // Display a notification that a player left
+      setActionBlockedMessage(message);
+      setTimeout(() => setActionBlockedMessage(""), 3000);
+      
+      // We'll get a full player update from the server via updatePlayers event
+      // This is just a backup filter in case that doesn't come through
+      setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== username));
+      
+      // Request updated player data from server
+      socket.emit('requestPlayerUpdate', { roomId });
     });
 
     socket.on('fortunoDiceRolled', ({ diceResult, playerId }) => {
@@ -369,12 +408,25 @@ export default function RoomPage() {
         setTurnSkippedMessage("");
       }, 3000);
     });
+    
+    // Listen for game ended event (when only one player remains)
+    socket.on('gameEnded', ({ message }) => {
+      // Show message to the user
+      alert(message);
+      
+      // Redirect to home
+      localStorage.removeItem('inGameState');
+      localStorage.removeItem('currentRoomId');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    });
 
     return () => {
-      // Send leave message once when unmounting
+      // Send leave message once when unmounting (not an explicit exit)
       if (hasJoinedRoom) {
         console.log(`Leaving room: ${roomId}`);
-        socket.emit('leaveRoom', roomId);
+        socket.emit('leaveRoom', { roomId, isExplicitExit: false });
       }
       
       // Clear localStorage
@@ -398,9 +450,9 @@ export default function RoomPage() {
         localStorage.removeItem('inGameState');
         localStorage.removeItem('currentRoomId');
         
-        // Tell server we're leaving the room
+        // Tell server we're leaving the room (not an explicit exit)
         if (socket && hasJoinedRoom) {
-          socket.emit('leaveRoom', roomId);
+          socket.emit('leaveRoom', { roomId, isExplicitExit: false });
         }
       }
     };
@@ -447,11 +499,7 @@ export default function RoomPage() {
     };
   }, [roomId, navigate]);
 
-  // Кнопка для старту гри
-  const handleStartGame = () => {
-    socket.emit('startGame', roomId);
-    setGameStarted(true); // Вимикаємо кнопку одразу після натискання
-  };
+
 
   // Клік по картці для викладання або скидання
   const handlePlayCard = (cardOrIndex, isDiscard = false) => {
@@ -501,8 +549,8 @@ export default function RoomPage() {
     socket.emit('drawCard', { roomId });
   };
 
-  // Фільтруємо опонентів (всі гравці, крім поточного)
-  const opponents = players.filter(p => p.id !== user?.username);
+  // Фільтруємо опонентів (всі гравці, крім поточного) і забираємо undefined/null
+  const opponents = players.filter(p => p && p.id && p.id !== user?.username);
 
   // Функція для розгортання/згортання панелі розробника
   const toggleDevPanel = () => {
@@ -535,9 +583,9 @@ export default function RoomPage() {
 
   // Add a button to safely leave the game
   const handleLeaveGame = () => {
-    // First leave the room
+    // Leave the room with explicit exit flag
     if (socket && hasJoinedRoom) {
-      socket.emit('leaveRoom', roomId);
+      socket.emit('leaveRoom', { roomId, isExplicitExit: true });
     }
     
     // Clear game state
@@ -566,8 +614,6 @@ export default function RoomPage() {
             isCurrentPlayerTurn={currentPlayerId === user?.username}
             actionBlockedMessage={actionBlockedMessage}
             turnSkippedMessage={turnSkippedMessage}
-            onStartGame={handleStartGame}
-            isGameStarted={gameStarted}
             onLeaveGame={handleLeaveGame}
           />
         </ErrorBoundary>
@@ -576,12 +622,12 @@ export default function RoomPage() {
         <div className="game-area">
           {/* Опоненти — позиціонуються абсолютно відносно game-area */}
           {opponents.map((player, index) => (
-            <ErrorBoundary key={`opponent-boundary-${index}`}>
+            <ErrorBoundary key={`opponent-boundary-${player.id || index}`}>
               <OpponentView 
                 key={player.id || `opponent-${index}`}
-                player={player || {}}
+                player={player}
                 position={index + 1}
-                isCurrentTurn={currentPlayerId === (player && player.id)}
+                isCurrentTurn={currentPlayerId === player.id}
                 totalPlayers={players.length}
               />
             </ErrorBoundary>

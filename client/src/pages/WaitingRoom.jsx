@@ -66,29 +66,46 @@ export default function WaitingRoom() {
       setPlayers(data.players);
       
       // Determine if current user is the host (first player)
-      if (data.players.length > 0 && data.players[0] === user?.username) {
-        setIsHost(true);
+      if (data.players.length > 0) {
+        const firstPlayer = data.players[0];
+        const firstPlayerId = typeof firstPlayer === 'object' ? firstPlayer.id : firstPlayer;
+        setIsHost(firstPlayerId === user?.username);
       }
     });
     
-    socket.on('gameStarted', () => {
-      // Redirect to game page when game starts
-      navigate(`/room/${roomId}`);
+    socket.on('gameStarted', ({ players, discardTop }) => {
+      console.log('WaitingRoom: Game started event received');
+      
+      // When game starts, immediately set up redirect to prevent rendering errors
+      localStorage.setItem('redirectToGame', 'true');
+      localStorage.setItem('currentRoomId', roomId);
+      localStorage.setItem('inGameState', 'true');
+
+      // Force redirect to game page immediately
+      window.location.href = `/room/${roomId}`;
     });
     
     socket.on('redirectToGameRoom', ({ roomId }) => {
       console.log(`WaitingRoom: Received redirect to game room command for ${roomId}`);
+      
+      // Immediately prevent further state updates to avoid React errors
+      setError("Перенаправлення до гри...");
       
       // Set all necessary localStorage flags first
       localStorage.setItem('redirectToGame', 'true');
       localStorage.setItem('currentRoomId', roomId);
       localStorage.setItem('inGameState', 'true');
       
-      // Use the most reliable and direct method - force a complete page reload
-      console.log(`WaitingRoom: Forcing redirect to /room/${roomId}`);
-      
-      // Use replace instead of href to prevent back button issues
-      window.location.replace(`/room/${roomId}`);
+      // Function to handle the redirect
+      const performRedirect = () => {
+        console.log(`WaitingRoom: Forcing redirect to /room/${roomId}`);
+        
+        // Force page reload with the new URL - use replace to prevent back navigation issues
+        window.location.replace(`/room/${roomId}`);
+      };
+
+      // Do the redirect immediately
+      performRedirect();
     });
     
     socket.on('roomNotFound', () => {
@@ -113,7 +130,10 @@ export default function WaitingRoom() {
       socket.off('roomNotFound');
       socket.off('gameAlreadyStarted');
       socket.off('redirectToGameRoom');
+      socket.off('errorMessage');
       window.removeEventListener('popstate', handleBrowserNavigation);
+      
+      console.log('WaitingRoom: Cleaned up event listeners');
     };
   }, [roomId, user, navigate]);
   
@@ -134,8 +154,8 @@ export default function WaitingRoom() {
   };
   
   const handleLeaveRoom = () => {
-    // Tell the server we're leaving
-    socket.emit('leaveRoom', roomId);
+    // Tell the server we're leaving with explicit exit flag
+    socket.emit('leaveRoom', { roomId, isExplicitExit: true });
     
     // Clear any local storage related to this room
     localStorage.removeItem('currentRoomId');
@@ -172,12 +192,18 @@ export default function WaitingRoom() {
       <div className="players-list">
         <h3>Гравці ({players.length}/4):</h3>
         <ul>
-          {players.map((player, index) => (
-            <li key={player}>
-              {player} {index === 0 ? "(Господар)" : ""}
-              {player === user?.username ? " (Ви)" : ""}
-            </li>
-          ))}
+          {players.map((player, index) => {
+            // Handle both string players and object players
+            const playerId = typeof player === 'object' ? player.id : player;
+            const playerName = typeof player === 'object' ? player.name : player;
+            
+            return (
+              <li key={playerId || index}>
+                {playerName} {index === 0 ? "(Господар)" : ""}
+                {playerId === user?.username ? " (Ви)" : ""}
+              </li>
+            );
+          })}
         </ul>
       </div>
       
