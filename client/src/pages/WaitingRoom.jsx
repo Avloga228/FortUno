@@ -167,10 +167,12 @@ export default function WaitingRoom() {
   
   if (error) {
     return (
-      <div className="waiting-room error">
-        <h2>Помилка</h2>
-        <p>{error}</p>
-        <button onClick={() => navigate('/')}>Повернутися на головну</button>
+      <div className="waiting-room">
+        <div className="waiting-room-content error">
+          <h2>Помилка</h2>
+          <p>{error}</p>
+          <button onClick={() => navigate('/')}>Повернутися на головну</button>
+        </div>
       </div>
     );
   }
@@ -179,55 +181,61 @@ export default function WaitingRoom() {
   
   return (
     <div className="waiting-room">
-      <h1>Зал очікування</h1>
-      <h2>Кімната: {roomId}</h2>
-      
-      <div className="room-info">
-        <button className="copy-button" onClick={handleCopyLink}>
-          Скопіювати посилання
-        </button>
-        {copySuccess && <span className="copy-success">{copySuccess}</span>}
-      </div>
-      
-      <div className="players-list">
-        <h3>Гравці ({players.length}/4):</h3>
-        <ul>
-          {players.map((player, index) => {
-            // Handle both string players and object players
-            const playerId = typeof player === 'object' ? player.id : player;
-            const playerName = typeof player === 'object' ? player.name : player;
-            
-            return (
-              <li key={playerId || index}>
-                {playerName} {index === 0 ? "(Господар)" : ""}
-                {playerId === user?.username ? " (Ви)" : ""}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-      
-      {players.length < 2 && (
-        <div className="waiting-message">
-          <p>Очікування інших гравців...</p>
-          <p>Для початку гри потрібно щонайменше 2 гравці</p>
+      <div className="waiting-room-content">
+        <div className="room-header">
+          <h1>Зал очікування</h1>
+          <h2>Кімната: {roomId}</h2>
         </div>
-      )}
-      
-      <div className="waiting-actions">
-        {isHost && (
-          <button 
-            className={`start-game-btn ${!canStartGame ? 'disabled' : ''}`}
-            disabled={!canStartGame}
-            onClick={handleStartGame}
-          >
-            Розпочати гру
+        
+        <div className="room-info">
+          <button className="copy-button" onClick={handleCopyLink}>
+            Скопіювати посилання
           </button>
+          {copySuccess && <span className="copy-success">{copySuccess}</span>}
+        </div>
+        
+        <div className="players-list">
+          <h3>Гравці ({players.length}/4):</h3>
+          <ul>
+            {players.map((player, index) => {
+              const playerId = typeof player === 'object' ? player.id : player;
+              const playerName = typeof player === 'object' ? player.name : player;
+              const isHost = index === 0;
+              const isCurrentPlayer = playerId === user?.username;
+              
+              return (
+                <li key={playerId || index}>
+                  {playerName}
+                  {isHost && <span className="player-host"> (Господар)</span>}
+                  {isCurrentPlayer && <span className="player-you"> (Ви)</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        
+        {players.length < 2 && (
+          <div className="waiting-message">
+            <p>Очікування інших гравців...</p>
+            <p>Для початку гри потрібно щонайменше 2 гравці</p>
+          </div>
         )}
         
-        <button className="leave-room-btn" onClick={handleLeaveRoom}>
-          Вийти з кімнати
-        </button>
+        <div className="waiting-actions">
+          {isHost && (
+            <button 
+              className={`start-game-btn ${!canStartGame ? 'disabled' : ''}`}
+              disabled={!canStartGame}
+              onClick={handleStartGame}
+            >
+              Розпочати гру
+            </button>
+          )}
+          
+          <button className="leave-room-btn" onClick={handleLeaveRoom}>
+            Вийти з кімнати
+          </button>
+        </div>
       </div>
     </div>
   );
