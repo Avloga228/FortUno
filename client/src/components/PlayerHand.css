@@ -9,6 +9,7 @@
   width: 100%;
   max-width: 950px;
   z-index: 5;
+  transition: all 0.3s ease;
 }
 
 .cards-container {
