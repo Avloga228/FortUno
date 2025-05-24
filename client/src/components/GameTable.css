@@ -4,15 +4,16 @@
   max-width: 900px;
   max-height: 700px;
   margin: 0 auto; /* Центруємо всередині game-area */
-  background: #2d2363;
+  background: rgb(10,28,61); /* Напівпрозорий фон */
   border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 30px 10px rgba(65, 105, 225, 0.4); /* Світіння тіні */
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: visible; /* Важливо! Дозволяємо елементам виходити за межі столу */
-  border: 6px solid #3a2e7c;
+  border: 6px solid rgba(40,104,198, 0.6); /* Світіння рамки */
   position: relative; /* щоб дочірні елементи могли позиціонуватись відносно */
+  z-index: 3; /* Встановлюємо вищий z-index, ніж у фонових елементів */
 }
 
 .table-surface {
@@ -31,7 +32,7 @@
   position: absolute;
   width: 92%;
   height: 85%;
-  border: 6px solid rgba(255, 255, 255, 0.1);
+  border: 6px solid rgba(40,104,198, 0.4); /* Світіння внутрішнього овалу */
   border-radius: 120px;
   pointer-events: none;
 }
