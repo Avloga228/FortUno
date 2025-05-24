@@ -298,16 +298,25 @@ html, body {
   z-index: 2;
 }
 
+.header-container {
+  display: flex;
+  width: 100%;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
 .logo-container {
   margin-bottom: 1em;
-  max-width: 90%;
+  max-width: 95%;
   z-index: 3;
 }
 
 .logo-image {
   max-width: 100%;
   height: auto;
-  max-height: 30vh;
+  max-height: 40vh;
 }
 
 .main-title {
@@ -430,82 +439,40 @@ html, body {
   box-shadow: 0 2px 10px rgba(24, 90, 157, 0.2);
 }
 
-.bottom-bar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px 20px;
-  pointer-events: none;
-  box-sizing: border-box;
-  z-index: 10;
-}
-
-.bottom-btn {
-  background: rgba(24, 90, 157, 0.5);
-  color: #fff;
-  font-size: 1.05rem;
-  border: none;
-  border-radius: 8px;
-  pointer-events: auto;
-  opacity: 1;
-  transition: all 0.3s ease;
-  max-width: 48vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 8px 15px;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(24, 90, 157, 0.2);
-}
-
-.bottom-btn:hover {
-  background: rgba(24, 90, 157, 0.7);
-  transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(67, 206, 162, 0.5);
-  outline: 1px solid rgba(67, 206, 162, 0.3);
-  outline-offset: 1px;
-}
-
-.bottom-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 5px rgba(24, 90, 157, 0.2);
-}
-
-.bottom-btn:disabled {
-  background: rgba(24, 90, 157, 0.3);
-  color: rgba(255, 255, 255, 0.6);
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.left-btn {
-  justify-self: flex-start;
-}
-
-.right-btn {
-  justify-self: flex-end;
-}
-
 .user-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
 
-.username {
+.user-info .username {
   font-weight: bold;
   color: white;
-  font-size: 14px;
+  font-size: 1.1rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex: 2;
+}
+
+.user-info .main-btn {
+  flex: 1;
+  padding: 0.8em 0;
+  font-size: 1rem;
 }
 
 /* Додаємо більше адаптивного дизайну */
 @media (max-width: 768px) {
   .logo-image {
-    max-height: 25vh;
+    max-height: 35vh;
+  }
+  
+  .login-button {
+    position: static;
+  }
+  
+  .top-login-btn {
+    font-size: 0.95rem;
+    padding: 7px 12px;
   }
   
   .menu-buttons {
@@ -517,15 +484,26 @@ html, body {
     padding: 1em 0;
     font-size: 1.1rem;
   }
-  
-  .bottom-bar {
-    padding: 0 15px 15px;
-  }
 }
 
 @media (max-width: 480px) {
+  .header-container {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  
+  .login-button {
+    position: static;
+    margin-top: 10px;
+  }
+  
   .logo-image {
-    max-height: 20vh;
+    max-height: 30vh;
+  }
+  
+  .top-login-btn {
+    font-size: 0.9rem;
+    padding: 6px 10px;
   }
   
   .menu-buttons {
@@ -537,19 +515,11 @@ html, body {
     padding: 0.8em 0;
     font-size: 1rem;
   }
-  
-  .bottom-bar {
-    padding: 0 10px 10px;
-  }
-  
-  .bottom-btn {
-    font-size: 0.9rem;
-  }
 }
 
 @media (max-height: 600px) {
   .logo-image {
-    max-height: 15vh;
+    max-height: 25vh;
   }
   
   .menu-buttons {

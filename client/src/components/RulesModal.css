@@ -1,0 +1,347 @@
+.rules-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rules-modal-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 24px;
+  padding: 3rem;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  color: #e0e0e0;
+  box-shadow: 0 0 50px rgba(67, 206, 162, 0.3);
+  border: 2px solid rgba(67, 206, 162, 0.2);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.rules-modal-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.rules-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg) scale(1.1);
+  color: #43cea2;
+}
+
+.rules-modal-content h2 {
+  color: #43cea2;
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(67, 206, 162, 0.4);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.rules-modal-content h2:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #43cea2, transparent);
+  border-radius: 4px;
+}
+
+.rules-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.rules-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(67, 206, 162, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.rules-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(67, 206, 162, 0.15);
+  border-color: rgba(67, 206, 162, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rules-section h3 {
+  color: #43cea2;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 15px rgba(67, 206, 162, 0.3);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.rules-section h3:hover {
+  transform: translateX(5px);
+}
+
+.rules-section h3:before {
+  content: '🎲';
+  font-size: 1.6rem;
+}
+
+.rules-section:nth-child(1) h3:before {
+  content: '🎲';
+}
+
+.rules-section:nth-child(2) h3:before {
+  content: '🃏';
+}
+
+.rules-section:nth-child(3) h3:before {
+  content: '⚡';
+}
+
+.rules-section:nth-child(4) h3:before {
+  content: '🎯';
+}
+
+.rules-section:nth-child(5) h3:before {
+  content: '🏆';
+}
+
+.rules-section h4 {
+  color: #43cea2;
+  font-size: 1.5rem;
+  margin: 1.5rem 0 1rem;
+  font-weight: 500;
+}
+
+.rules-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rules-section li {
+  margin-bottom: 1rem;
+  padding-left: 2.5rem;
+  position: relative;
+  line-height: 1.7;
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.rules-section li:hover {
+  transform: translateX(5px);
+  color: #fff;
+}
+
+.rules-section li:before {
+  content: "🎮";
+  position: absolute;
+  left: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  opacity: 0.9;
+  transition: transform 0.3s ease;
+}
+
+.rules-section li:hover:before {
+  transform: scale(1.2) rotate(10deg);
+}
+
+/* Спеціальні маркери для різних типів правил */
+.rules-section:nth-child(1) li:before {
+  content: "🎲";
+}
+
+.rules-section:nth-child(2) li:before {
+  content: "🃏";
+}
+
+.rules-section:nth-child(3) li:before {
+  content: "⚡";
+}
+
+.rules-section:nth-child(5) li:before {
+  content: "🏆";
+}
+
+/* Стилі для вкладених списків */
+.rules-section li ul {
+  margin-top: 0.8rem;
+  margin-left: 1rem;
+}
+
+.rules-section li ul li {
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+  padding-left: 2rem;
+}
+
+.rules-section li ul li:before {
+  content: "✨";
+  font-size: 1.2rem;
+}
+
+.rules-section p {
+  margin-bottom: 1.2rem;
+  color: #e0e0e0;
+  font-size: 1.1rem;
+}
+
+.card-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.card-type {
+  background: rgba(67, 206, 162, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(67, 206, 162, 0.25);
+  transition: all 0.3s ease;
+}
+
+.card-type:hover {
+  transform: translateY(-5px);
+  background: rgba(67, 206, 162, 0.15);
+  box-shadow: 0 8px 25px rgba(67, 206, 162, 0.1);
+}
+
+.fortuno-effects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.fortuno-effects li {
+  background: rgba(67, 206, 162, 0.1);
+  padding: 1.2rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(67, 206, 162, 0.25);
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
+}
+
+.fortuno-effects li:before {
+  content: none;
+}
+
+.fortuno-effects li:hover {
+  transform: translateY(-3px) scale(1.02);
+  background: rgba(67, 206, 162, 0.15);
+  box-shadow: 0 8px 25px rgba(67, 206, 162, 0.1);
+}
+
+/* Анімація для ефектів Фортуно */
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+
+.fortuno-effects li {
+  animation: float 3s infinite ease-in-out;
+}
+
+.fortuno-effects li:nth-child(2n) {
+  animation-delay: 0.5s;
+}
+
+.fortuno-effects li:nth-child(3n) {
+  animation-delay: 1s;
+}
+
+/* Стилі для скролбару */
+.rules-modal-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.rules-modal-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.rules-modal-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(#43cea2, #2fb88c);
+  border-radius: 6px;
+  border: 3px solid rgba(26, 26, 46, 0.8);
+}
+
+.rules-modal-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(#2fb88c, #1fa074);
+}
+
+/* Адаптивність */
+@media (max-width: 768px) {
+  .rules-modal-content {
+    padding: 2rem;
+    width: 95%;
+  }
+
+  .rules-modal-content h2 {
+    font-size: 2rem;
+  }
+
+  .rules-section h3 {
+    font-size: 1.5rem;
+  }
+
+  .card-types, .fortuno-effects {
+    grid-template-columns: 1fr;
+  }
+  
+  .rules-section {
+    padding: 1.5rem;
+  }
+}
