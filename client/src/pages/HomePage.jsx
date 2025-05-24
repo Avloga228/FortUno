@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./HomePage.css"; // Додаємо окремий CSS-файл для стилів
 import AuthModal from "../components/AuthModal";
 import RoomList from "../components/RoomList";
+import RulesModal from "../components/RulesModal";
 import { useAuth } from "../context/AuthContext";
 import { socket } from "../socket";
 
@@ -11,6 +12,7 @@ export default function HomePage() {
   const { user, logout } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isRoomListOpen, setIsRoomListOpen] = useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [actionType, setActionType] = useState(''); // 'join' or 'host'
 
   // Clear any existing room connections when HomePage loads
@@ -114,14 +116,6 @@ export default function HomePage() {
     <div className="main-bg custom-home-bg">
       <div className="main-content">
         <div className="header-container">
-          {user ? (
-            <div className="login-button user-info">
-              <span className="username"> {user.username}</span>
-              <button onClick={logout} className="top-login-btn">Вийти</button>
-            </div>
-          ) : (
-            <button className="top-login-btn" onClick={() => setIsAuthModalOpen(true)}>Увійти</button>
-          )}
           <div className="logo-container">
             <img src="/img/logo.webp" alt="FortUno" className="logo-image" />
           </div>
@@ -129,8 +123,15 @@ export default function HomePage() {
         <div className="menu-buttons">
           <button className="main-btn join-btn" onClick={handleJoin}>Приєднатися до гри</button>
           <button className="main-btn host-btn" onClick={handleHost}>Хостити гру</button>
-          <button className="main-btn" disabled>Інструкція</button>
-          <button className="main-btn" disabled>Таблиця лідерів</button>
+          <button className="main-btn" onClick={() => setIsRulesModalOpen(true)}>Інструкція</button>
+          {user ? (
+            <div className="user-info">
+              <span className="username">{user.username}</span>
+              <button onClick={logout} className="main-btn">Вийти</button>
+            </div>
+          ) : (
+            <button className="main-btn" onClick={() => setIsAuthModalOpen(true)}>Увійти</button>
+          )}
         </div>
       </div>
       
@@ -145,6 +146,12 @@ export default function HomePage() {
       <RoomList
         isOpen={isRoomListOpen}
         onClose={() => setIsRoomListOpen(false)}
+      />
+
+      {/* Rules Modal */}
+      <RulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
       />
     </div>
   );
