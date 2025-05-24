@@ -499,8 +499,6 @@ export default function RoomPage() {
     };
   }, [roomId, navigate]);
 
-
-
   // Клік по картці для викладання або скидання
   const handlePlayCard = (cardOrIndex, isDiscard = false) => {
     if (currentPlayerId !== user?.username) return;
@@ -723,7 +721,6 @@ export default function RoomPage() {
           }} 
           onSuccess={handleAuthSuccess}
         />
-
 
       </div>
     </ErrorBoundary>

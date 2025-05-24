@@ -25,16 +25,6 @@
   overflow: visible; /* Також змінюємо на visible, щоб елементи могли виходити за межі */
 }
 
-/* Створюємо стилізовану поверхню столу */
-.table-surface::before {
-  content: '';
-  position: absolute;
-  width: 150%;
-  height: 150%;
-  background: radial-gradient(ellipse, rgba(74, 58, 151, 0.6) 0%, rgba(45, 35, 99, 0.8) 70%);
-  pointer-events: none;
-}
-
 /* Внутрішній "овал" столу */
 .table-surface::after {
   content: '';
