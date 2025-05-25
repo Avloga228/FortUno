@@ -14,13 +14,7 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://fortuno-client.onrender.com', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app', 'https://fort-uno.vercel.app'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  origin: '*'
 }));
 app.use(express.json());
 
