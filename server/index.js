@@ -24,10 +24,36 @@ app.use(express.json());
 // Підключення до MongoDB Atlas
 mongoose.connect(process.env.MONGO_URL, { 
   useNewUrlParser: true, 
-  useUnifiedTopology: true 
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  family: 4,
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  retryWrites: true,
+  w: 'majority'
 })
   .then(() => console.log('MongoDB Atlas підключено'))
   .catch(err => console.error('Помилка підключення до MongoDB Atlas:', err));
+
+// Додаємо обробник подій підключення
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose підключено до MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Помилка підключення Mongoose:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose відключено від MongoDB');
+});
+
+// Обробка завершення процесу
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  process.exit(0);
+});
 
 // Схема користувача
 const userSchema = new mongoose.Schema({
