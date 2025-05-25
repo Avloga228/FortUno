@@ -8,7 +8,7 @@ let isAuthenticated = false;
 export const socket = io(API_URL, {
   transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 10,
+  reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
   timeout: 20000,
@@ -21,12 +21,22 @@ export const socket = io(API_URL, {
   query: {
     clientType: 'web',
     version: '1.0.0'
-  }
+  },
+  // Додаємо налаштування для кращої підтримки WebSocket
+  path: '/socket.io/',
+  // Додаємо налаштування для автоматичного переключення транспорту
+  upgrade: true,
+  rememberUpgrade: true,
+  // Додаємо налаштування для кращої обробки помилок
+  rejectUnauthorized: false,
+  // Додаємо налаштування для кращої підтримки проксі
+  withCredentials: true
 });
 
 // Track connection status
 socket.on('connect', () => {
   console.log(`Socket connected with ID: ${socket.id}`);
+  console.log(`Transport: ${socket.io.engine.transport.name}`);
   
   // Reset the authentication flag on new connection
   isAuthenticated = false;
@@ -78,6 +88,7 @@ socket.on('connect_error', (error) => {
   // Attempt to reconnect after a delay
   setTimeout(() => {
     if (!socket.connected) {
+      console.log('Attempting to reconnect...');
       socket.connect();
     }
   }, 5000);
@@ -86,11 +97,17 @@ socket.on('connect_error', (error) => {
 // Handle reconnection attempts
 socket.on('reconnect_attempt', (attemptNumber) => {
   console.log(`Attempting to reconnect (attempt ${attemptNumber})...`);
+  // Try to upgrade to WebSocket if using polling
+  if (socket.io.engine.transport.name === 'polling') {
+    console.log('Attempting to upgrade to WebSocket...');
+    socket.io.engine.upgrade();
+  }
 });
 
 // Handle successful reconnection
 socket.on('reconnect', (attemptNumber) => {
   console.log(`Successfully reconnected after ${attemptNumber} attempts`);
+  console.log(`Transport: ${socket.io.engine.transport.name}`);
   // Re-authenticate after reconnection
   const token = localStorage.getItem('authToken');
   if (token) {

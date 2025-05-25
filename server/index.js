@@ -342,7 +342,17 @@ const io = new Server(server, {
   pingInterval: 25000,
   connectTimeout: 45000,
   allowUpgrades: true,
-  maxHttpBufferSize: 1e8
+  maxHttpBufferSize: 1e8,
+  // Додаємо налаштування для кращої підтримки WebSocket
+  path: '/socket.io/',
+  serveClient: false,
+  cookie: false,
+  // Додаємо налаштування для автоматичного переключення транспорту
+  upgradeTimeout: 30000,
+  // Додаємо налаштування для кращої обробки помилок
+  allowEIO3: true,
+  // Додаємо налаштування для кращої підтримки проксі
+  wsEngine: 'ws'
 });
 
 // Допоміжна функція для відправки оновленого стану гравців всім у кімнаті
