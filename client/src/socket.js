@@ -6,13 +6,13 @@ let isAuthenticated = false;
 
 // Create a single socket instance
 export const socket = io(API_URL, {
-  transports: ['websocket', 'polling'],
+  transports: ['polling', 'websocket'],
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
   timeout: 20000,
-  autoConnect: true,
+  autoConnect: false,
   // Prevent multiple connections from the same client
   multiplex: true,
   // Force new connection when navigating between pages to prevent shared state issues

@@ -15,7 +15,7 @@ export const GAME_CONFIG = {
   turnTimeout: 30000,
   fortunoTimeout: 10000,
   socketConfig: {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     upgrade: true,
     rememberUpgrade: true,
     path: '/socket.io/'
