@@ -1,5 +1,5 @@
 // API URL configuration
-const isDevelopment = process.env.NODE_ENV === 'true';
+const isDevelopment = process.env.NODE_ENV === 'production';
 console.log('Window location:', window.location.hostname);
 console.log('Is development:', isDevelopment);
 
