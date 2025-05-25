@@ -28,9 +28,7 @@ export const socket = io(API_URL, {
   upgrade: true,
   rememberUpgrade: true,
   // Додаємо налаштування для кращої обробки помилок
-  rejectUnauthorized: false,
-  // Додаємо налаштування для кращої підтримки проксі
-  withCredentials: true
+  rejectUnauthorized: false
 });
 
 // Track connection status
