@@ -398,6 +398,7 @@ io.on('connection', (socket) => {
 
   // Приєднання до кімнати
   socket.on('joinRoom', async (roomId) => {
+    console.log(`DEBUG: Отримано подію joinRoom від ${socket.username} (${socket.id}) для кімнати ${roomId}`);
     try {
       // Skip if no username (authentication required)
       if (!socket.username) {
