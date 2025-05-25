@@ -14,7 +14,10 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: '*'
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app', 'https://fort-uno.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -328,7 +331,7 @@ app.get('/api/rooms', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app'],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app', 'https://fort-uno.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     credentials: true
