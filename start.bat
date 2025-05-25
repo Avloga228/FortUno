@@ -1,2 +1,2 @@
-start "" /d "C:\Users\MSI\Desktop\FortUno\server" cmd /k "nodemon index.js"
-start "" /d "C:\Users\MSI\Desktop\FortUno\client" cmd /k "npm run dev"
+start "" /d "C:\Users\User\Desktop\webprojGROUP\FortUno\server" cmd /k "nodemon index.js"
+start "" /d "C:\Users\User\Desktop\webprojGROUP\FortUno\client" cmd /k "npm run dev"
