@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
+import { toast } from "react-hot-toast";
 
 // Імпортуємо компоненти
 import GameTable from "../components/GameTable";
@@ -12,6 +13,9 @@ import PlayerHand from "../components/PlayerHand";
 import OpponentView from "../components/OpponentView";
 import ColorPicker from "../components/ColorPicker";
 import DiceRoller from "../components/DiceRoller";
+import FortunoButton from '../components/FortunoButton';
+import GameEndModal from '../components/GameEndModal';
+import GameChat from '../components/GameChat';
 
 import "./RoomPage.css";
 
@@ -76,6 +80,12 @@ export default function RoomPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFortunoButton, setShowFortunoButton] = useState(false);
+  const [showGameEndModal, setShowGameEndModal] = useState(false);
+  const [gameEndMessage, setGameEndMessage] = useState("");
+  const [gameWinner, setGameWinner] = useState(null);
+  const [isFortunoVisible, setIsFortunoVisible] = useState(false);
+  const [isChatExpanded, setIsChatExpanded] = useState(true);
 
   // Перевірка авторизації при завантаженні
   useEffect(() => {
@@ -227,6 +237,13 @@ export default function RoomPage() {
       socket.off('turnSkipped');
       socket.off('roomNotFound');
       socket.off('gameEnded');
+      socket.off('showFortunoButton');
+      socket.off('hideFortunoButton');
+      socket.off('fortunoSuccess');
+      socket.off('fortunoFailed');
+      socket.off('fortunoTimeout');
+      socket.off('fortunoMissed');
+      socket.off('gameWon');
     };
 
     // Clean up existing listeners
@@ -422,6 +439,60 @@ export default function RoomPage() {
       }, 1000);
     });
 
+    socket.on('showFortunoButton', () => {
+      setIsFortunoVisible(true);
+    });
+
+    socket.on('hideFortunoButton', () => {
+      setIsFortunoVisible(false);
+    });
+
+    socket.on('fortunoSuccess', ({ player, message }) => {
+      toast.success(message);
+    });
+
+    socket.on('fortunoFailed', ({ clickedBy, penalizedPlayer, message }) => {
+      toast.warning(message);
+    });
+
+    socket.on('fortunoTimeout', ({ penalizedPlayer, message }) => {
+      toast.error(message);
+    });
+
+    socket.on('fortunoMissed', ({ player, message }) => {
+      toast.error(message);
+    });
+
+    socket.on('gameWon', ({ winner, message }) => {
+      toast.success(message);
+      setGameWinner(winner);
+      
+      // Show game end modal
+      setShowGameEndModal(true);
+      setGameEndMessage(message);
+      
+      // Clear game state
+      localStorage.removeItem('inGameState');
+      localStorage.removeItem('currentRoomId');
+      
+      // Hide FORTUNO button if it's visible
+      setIsFortunoVisible(false);
+      
+      // Clear any pending states
+      setShowColorPicker(false);
+      setPendingBlackCard(null);
+      setChooseCardToDiscard(false);
+      setShowDiceRoller(false);
+
+      // Automatically redirect all players to home after a short delay
+      setTimeout(() => {
+        // Send explicit leave to ensure room cleanup
+        socket.emit('leaveRoom', { roomId, isExplicitExit: true });
+        // Redirect to home
+        window.location.href = '/';
+      }, 3000); // 3 seconds delay to show the win message
+    });
+
     return () => {
       // Send leave message once when unmounting (not an explicit exit)
       if (hasJoinedRoom) {
@@ -499,7 +570,28 @@ export default function RoomPage() {
     };
   }, [roomId, navigate]);
 
+  // Фільтруємо опонентів (всі гравці, крім поточного) і забираємо undefined/null
+  const opponents = players.filter(p => p && p.id && p.id !== user?.username);
 
+  // Функція для визначення позиції опонента відносно поточного гравця
+  const getOpponentPosition = (opponentIndex, currentPlayerIndex, totalPlayers) => {
+    // Визначаємо відносну позицію опонента
+    let relativePosition = (opponentIndex - currentPlayerIndex + totalPlayers) % totalPlayers;
+    if (relativePosition <= 0) relativePosition += totalPlayers;
+    return relativePosition;
+  };
+
+  // Знаходимо індекс поточного гравця
+  const currentPlayerIndex = players.findIndex(p => p.id === user?.username);
+
+  // Сортуємо опонентів за їх позиціями відносно поточного гравця
+  const sortedOpponents = [...opponents].sort((a, b) => {
+    const aIndex = players.findIndex(p => p.id === a.id);
+    const bIndex = players.findIndex(p => p.id === b.id);
+    const aPosition = getOpponentPosition(aIndex, currentPlayerIndex, players.length);
+    const bPosition = getOpponentPosition(bIndex, currentPlayerIndex, players.length);
+    return aPosition - bPosition;
+  });
 
   // Клік по картці для викладання або скидання
   const handlePlayCard = (cardOrIndex, isDiscard = false) => {
@@ -549,9 +641,6 @@ export default function RoomPage() {
     socket.emit('drawCard', { roomId });
   };
 
-  // Фільтруємо опонентів (всі гравці, крім поточного) і забираємо undefined/null
-  const opponents = players.filter(p => p && p.id && p.id !== user?.username);
-
   // Функція для розгортання/згортання панелі розробника
   const toggleDevPanel = () => {
     setDevPanelExpanded(!devPanelExpanded);
@@ -596,6 +685,16 @@ export default function RoomPage() {
     window.location.href = '/';
   };
 
+  // Add FORTUNO click handler
+  const handleFortunoClick = () => {
+    socket.emit('fortunoClicked', { roomId });
+  };
+
+  // Add function to handle returning to home after game end
+  const handleReturnHome = () => {
+    navigate('/');
+  };
+
   return (
     <ErrorBoundary>
       <div className="game-page">
@@ -621,7 +720,7 @@ export default function RoomPage() {
         {/* Ігровий стіл */}
         <div className="game-area">
           {/* Опоненти — позиціонуються абсолютно відносно game-area */}
-          {opponents.map((player, index) => (
+          {sortedOpponents.map((player, index) => (
             <ErrorBoundary key={`opponent-boundary-${player.id || index}`}>
               <OpponentView 
                 key={player.id || `opponent-${index}`}
@@ -724,6 +823,36 @@ export default function RoomPage() {
           onSuccess={handleAuthSuccess}
         />
 
+        {/* FORTUNO Button */}
+        <FortunoButton 
+          isVisible={isFortunoVisible} 
+          onFortunoClick={handleFortunoClick} 
+        />
+
+        {/* Game End Modal */}
+        {showGameEndModal && (
+          <GameEndModal 
+            winner={gameWinner}
+            message={gameEndMessage}
+            onReturnHome={() => {
+              // Clear game state
+              localStorage.removeItem('inGameState');
+              localStorage.removeItem('currentRoomId');
+              // Navigate to home
+              navigate('/');
+            }}
+          />
+        )}
+
+        {/* Game Chat */}
+        {gameStarted && (
+          <GameChat
+            socket={socket}
+            roomId={roomId}
+            username={user?.username}
+            isExpanded={isChatExpanded}
+          />
+        )}
 
       </div>
     </ErrorBoundary>

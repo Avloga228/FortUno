@@ -1,0 +1,104 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.game-end-modal {
+  background: rgba(19, 16, 43, 0.95);
+  padding: 30px;
+  border-radius: 20px;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 0 30px rgba(67, 206, 162, 0.3);
+  animation: modalAppear 0.5s ease-out;
+  border: 2px solid rgba(67, 206, 162, 0.5);
+}
+
+.game-end-modal h2 {
+  color: #ffd700;
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.winner-message {
+  font-size: 2em;
+  color: #fff;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(67, 206, 162, 0.2);
+  border-radius: 10px;
+}
+
+.game-end-message {
+  font-size: 1.2em;
+  color: #fff;
+  margin: 20px 0;
+  opacity: 0.8;
+}
+
+.return-home-btn {
+  background: linear-gradient(45deg, #43cea2, #185a9d);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(67, 206, 162, 0.3);
+}
+
+.return-home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(67, 206, 162, 0.5);
+}
+
+.return-home-btn:active {
+  transform: translateY(1px);
+}
+
+@keyframes modalAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .game-end-modal {
+    padding: 20px;
+  }
+
+  .game-end-modal h2 {
+    font-size: 2em;
+  }
+
+  .winner-message {
+    font-size: 1.5em;
+  }
+
+  .game-end-message {
+    font-size: 1em;
+  }
+
+  .return-home-btn {
+    padding: 12px 24px;
+    font-size: 1em;
+  }
+} 
