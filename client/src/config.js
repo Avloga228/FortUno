@@ -1,13 +1,11 @@
 // API URL configuration
-const isDevelopment = process.env.NODE_ENV === 'production';
-console.log('Window location:', window.location.hostname);
-console.log('Is development:', isDevelopment);
+const isDevelopment = import.meta.env.DEV; // Vite надає цю змінну
 
-export const API_URL = isDevelopment 
-  ? 'http://localhost:5000'
-  : 'https://fortuno-server.onrender.com';
+// Використовуємо змінну середовища Vercel, якщо вона доступна (для продакшену),
+// інакше використовуємо локальний URL (для розробки)
+export const API_URL = import.meta.env.VITE_API_URL_PROD || 'http://localhost:5000';
 
-console.log('Current environment:', isDevelopment ? 'development' : 'production');
+console.log('Current environment (Vite DEV):', isDevelopment);
 console.log('API URL:', API_URL);
 
 // Game configuration
@@ -16,14 +14,18 @@ export const GAME_CONFIG = {
   maxPlayers: 4,
   initialCards: 7,
   maxMessageLength: 200,
-  reconnectionTimeout: 30000,
-  gameStartDelay: 3000,
-  turnTimeout: 30000,
-  fortunoTimeout: 10000,
+  reconnectionTimeout: 5000,
+  gameStartDelay: 3000, // Delay in ms before starting game after min players joined
+  turnTimeout: 60000, // Time in ms for a player's turn
+  fortunoTimeout: 5000, // Time in ms to click FORTUNO button
+  // Socket.IO client configuration options
   socketConfig: {
     transports: ['polling', 'websocket'],
     upgrade: true,
     rememberUpgrade: true,
-    path: '/socket.io/'
+    path: '/socket.io/',
+    reconnectionDelayMax: 10000, // Maximum delay between reconnection attempts
+    timeout: 20000, // Connection timeout before assuming connection failed
+    // В інших місцях також додамо rejectUnauthorized: false при необхідності
   }
 }; 
