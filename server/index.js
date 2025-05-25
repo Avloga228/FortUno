@@ -13,7 +13,12 @@ const gameStates = {};
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://fortuno.vercel.app', 'https://fortuno-client.vercel.app']
+    : 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
 // Підключення до MongoDB Atlas
@@ -84,7 +89,7 @@ async function saveWithRetry(document, maxRetries = 3) {
 }
 
 // JWT Secret
-const JWT_SECRET = 'fortuno-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'fortuno-secret-key';
 
 // Middleware для перевірки JWT токена
 const authenticate = async (req, res, next) => {
@@ -2062,13 +2067,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Видаємо статичні файли React (після білду)
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-// SPA fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
+// Видаємо статичні файли React тільки в режимі розробки
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  // SPA fallback тільки в режимі розробки
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
