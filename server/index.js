@@ -23,15 +23,15 @@ app.use(express.json());
 
 // Підключення до MongoDB Atlas
 mongoose.connect(process.env.MONGO_URL, { 
-  useNewUrlParser: true, 
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   family: 4,
   maxPoolSize: 10,
   minPoolSize: 5,
   retryWrites: true,
-  w: 'majority'
+  w: 'majority',
+  heartbeatFrequencyMS: 10000,
+  connectTimeoutMS: 30000
 })
   .then(() => console.log('MongoDB Atlas підключено'))
   .catch(err => console.error('Помилка підключення до MongoDB Atlas:', err));
@@ -47,6 +47,20 @@ mongoose.connection.on('error', (err) => {
 
 mongoose.connection.on('disconnected', () => {
   console.log('Mongoose відключено від MongoDB');
+  // Спробуємо перепідключитися
+  setTimeout(() => {
+    mongoose.connect(process.env.MONGO_URL, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      retryWrites: true,
+      w: 'majority',
+      heartbeatFrequencyMS: 10000,
+      connectTimeoutMS: 30000
+    }).catch(err => console.error('Помилка перепідключення:', err));
+  }, 5000);
 });
 
 // Обробка завершення процесу
@@ -2111,55 +2125,74 @@ server.listen(PORT, () => {
 // Add a cleanup function that runs periodically to check for and remove empty rooms
 setInterval(async () => {
   try {
+    // Перевіряємо з'єднання з базою даних
+    if (mongoose.connection.readyState !== 1) {
+      console.log('База даних не підключена, пропускаємо очистку');
+      return;
+    }
+
     // Check each room with disconnected players
     for (const [roomId, disconnectedSet] of disconnectedPlayers.entries()) {
-      const room = await Room.findOne({ roomId });
-      
-      if (!room) {
-        // Room no longer exists, clean up our tracking
-        disconnectedPlayers.delete(roomId);
-        continue;
-      }
-      
-      // If all players in the room are disconnected, delete it
-      if (disconnectedSet.size === room.players.length) {
-        console.log(`🧹 Очищення: Всі гравці (${room.players.length}) відключені з кімнати ${roomId}, видаляємо кімнату`);
-        await Room.deleteOne({ roomId });
-        disconnectedPlayers.delete(roomId);
-        delete gameStates[roomId];
-        console.log(`🗑️ Кімната ${roomId} видалена (плановий підчистка)`);
-      }
-    }
-    
-    // Also check for any waiting rooms with zero players (these should never exist, but just in case)
-    const emptyWaitingRooms = await Room.find({ 
-      gameStarted: false, 
-      players: { $size: 0 } 
-    });
-    
-    if (emptyWaitingRooms.length > 0) {
-      console.log(`🧹 Знайдено ${emptyWaitingRooms.length} порожніх кімнат очікування, видаляємо...`);
-      
-      for (const room of emptyWaitingRooms) {
-        await Room.deleteOne({ roomId: room.roomId });
-        console.log(`🗑️ Порожня кімната ${room.roomId} видалена`);
+      try {
+        const room = await Room.findOne({ roomId }).maxTimeMS(5000);
+        
+        if (!room) {
+          // Room no longer exists, clean up our tracking
+          disconnectedPlayers.delete(roomId);
+          continue;
+        }
+        
+        // If all players in the room are disconnected, delete it
+        if (disconnectedSet.size === room.players.length) {
+          console.log(`🧹 Очищення: Всі гравці (${room.players.length}) відключені з кімнати ${roomId}, видаляємо кімнату`);
+          await Room.deleteOne({ roomId }).maxTimeMS(5000);
+          disconnectedPlayers.delete(roomId);
+          delete gameStates[roomId];
+          console.log(`🗑️ Кімната ${roomId} видалена (плановий підчистка)`);
+        }
+      } catch (err) {
+        console.error(`Помилка при обробці кімнати ${roomId}:`, err);
+        continue; // Продовжуємо з наступною кімнатою
       }
     }
     
-    // Check for stale waiting rooms (old rooms that are likely abandoned)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
-    const staleWaitingRooms = await Room.find({
-      gameStarted: false,
-      createdAt: { $lt: oneHourAgo }
-    });
-    
-    if (staleWaitingRooms.length > 0) {
-      console.log(`🧹 Знайдено ${staleWaitingRooms.length} застарілих кімнат очікування, видаляємо...`);
+    // Also check for any waiting rooms with zero players
+    try {
+      const emptyWaitingRooms = await Room.find({ 
+        gameStarted: false, 
+        players: { $size: 0 } 
+      }).maxTimeMS(5000);
       
-      for (const room of staleWaitingRooms) {
-        await Room.deleteOne({ roomId: room.roomId });
-        console.log(`🗑️ Застаріла кімната ${room.roomId} видалена (створена ${room.createdAt})`);
+      if (emptyWaitingRooms.length > 0) {
+        console.log(`🧹 Знайдено ${emptyWaitingRooms.length} порожніх кімнат очікування, видаляємо...`);
+        
+        for (const room of emptyWaitingRooms) {
+          await Room.deleteOne({ roomId: room.roomId }).maxTimeMS(5000);
+          console.log(`🗑️ Порожня кімната ${room.roomId} видалена`);
+        }
       }
+    } catch (err) {
+      console.error('Помилка при перевірці порожніх кімнат:', err);
+    }
+    
+    // Check for stale waiting rooms
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const staleWaitingRooms = await Room.find({
+        gameStarted: false,
+        createdAt: { $lt: oneHourAgo }
+      }).maxTimeMS(5000);
+      
+      if (staleWaitingRooms.length > 0) {
+        console.log(`🧹 Знайдено ${staleWaitingRooms.length} застарілих кімнат очікування, видаляємо...`);
+        
+        for (const room of staleWaitingRooms) {
+          await Room.deleteOne({ roomId: room.roomId }).maxTimeMS(5000);
+          console.log(`🗑️ Застаріла кімната ${room.roomId} видалена (створена ${room.createdAt})`);
+        }
+      }
+    } catch (err) {
+      console.error('Помилка при перевірці застарілих кімнат:', err);
     }
   } catch (err) {
     console.error('Помилка під час планової очистки кімнат:', err);
