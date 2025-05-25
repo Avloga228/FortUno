@@ -9,9 +9,39 @@ const jwt = require('jsonwebtoken');
 const { generateDeck, shuffleDeck, dealCards } = require('../shared/gameLogic');
 const gameStates = {};
 
+// Завантажуємо змінні середовища
+require('dotenv').config();
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Підключення до MongoDB Atlas
+mongoose.connect(process.env.MONGO_URL, { 
+  useNewUrlParser: true, 
+  useUnifiedTopology: true 
+})
+  .then(() => console.log('MongoDB Atlas підключено'))
+  .catch(err => console.error('Помилка підключення до MongoDB Atlas:', err));
+
+// Схема користувача
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Схема кімнати зі зв'язком із користувачами
+const roomSchema = new mongoose.Schema({
+  roomId: { type: String, required: true, unique: true },
+  players: [{ type: String }],
+  createdAt: { type: Date, default: Date.now },
+  gameStarted: { type: Boolean, default: false }
+});
+
+const Room = mongoose.model('Room', roomSchema);
 
 // Helper function to save a document with retries for version conflicts
 async function saveWithRetry(document, maxRetries = 3) {
@@ -55,30 +85,6 @@ async function saveWithRetry(document, maxRetries = 3) {
 
 // JWT Secret
 const JWT_SECRET = 'fortuno-secret-key';
-
-// Підключення до MongoDB
-mongoose.connect('mongodb://localhost:27017/fortuno', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB підключено'))
-  .catch(err => console.error('Помилка підключення до MongoDB:', err));
-
-// Схема користувача
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-
-// Схема кімнати зі зв'язком із користувачами
-const roomSchema = new mongoose.Schema({
-  roomId: { type: String, required: true, unique: true },
-  players: [{ type: String }],
-  createdAt: { type: Date, default: Date.now },
-  gameStarted: { type: Boolean, default: false }
-});
-
-const Room = mongoose.model('Room', roomSchema);
 
 // Middleware для перевірки JWT токена
 const authenticate = async (req, res, next) => {
@@ -280,8 +286,10 @@ app.get('/api/rooms', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://fortuno.vercel.app', 'https://fortuno-client.vercel.app']
+      : 'http://localhost:5173',
+    methods: ['GET', 'POST'],
     credentials: true
   },
   transports: ['websocket', 'polling']
