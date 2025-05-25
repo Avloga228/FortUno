@@ -592,7 +592,7 @@ export default function RoomPage() {
     const bPosition = getOpponentPosition(bIndex, currentPlayerIndex, players.length);
     return aPosition - bPosition;
   });
-
+  
   // Клік по картці для викладання або скидання
   const handlePlayCard = (cardOrIndex, isDiscard = false) => {
     if (currentPlayerId !== user?.username) return;
@@ -822,7 +822,7 @@ export default function RoomPage() {
           }} 
           onSuccess={handleAuthSuccess}
         />
-
+        
         {/* FORTUNO Button */}
         <FortunoButton 
           isVisible={isFortunoVisible} 

@@ -5,46 +5,158 @@
   flex-direction: column;
   min-height: 100vh;
   width: 100%;
-  background: #2d2363;
+  background: #050718;
   color: white;
   position: relative;
   overflow: hidden;
 }
 
-.game-page::before, .game-page::after {
+/* Космічний фон з градієнтами та пульсацією */
+.game-page::before {
   content: '';
   position: absolute;
-  left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    /* Базовий іонний фон */
+    #050718,
+    /* М'які галактичні світіння */
+    radial-gradient(circle at 20% 20%, rgba(67, 206, 162, 0.15) 0%, transparent 50%), /* Зеленувате світіння */
+    radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.15) 0%, transparent 50%), /* Золотисте світіння */
+    radial-gradient(circle at 50% 50%, rgba(24, 90, 157, 0.2) 0%, transparent 70%), /* Синє світіння */
+    /* Додаткові кольорові туманності */
+    radial-gradient(circle at 10% 90%, rgba(138, 43, 226, 0.1) 0%, transparent 60%), /* Аметистове світіння */
+    radial-gradient(circle at 90% 10%, rgba(255, 69, 0, 0.1) 0%, transparent 60%); /* Червонувато-помаранчеве світіння */
   z-index: 0;
   pointer-events: none;
+  background-blend-mode: screen; /* Змішуємо кольори для ефекту світіння */
+  animation: backgroundPulse 8s infinite alternate;
 }
 
-.game-page::before {
-  top: 0;
-  height: 50vh;
-  background: radial-gradient(ellipse 80% 50% at 50% 0%, #3a2e7c 40%, transparent 100%);
-  opacity: 0.7;
-}
-
+/* Космічні промені / Галактичні смуги - через :after для другого шару */
 .game-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   bottom: 0;
-  height: 50vh;
-  background: radial-gradient(ellipse 80% 50% at 50% 100%, #463a8b 40%, transparent 100%);
-  opacity: 0.7;
+  background:
+    /* Смуги, що імітують галактичні рукави або світлові промені */
+    linear-gradient(45deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.05) 100%) 0 0 / 200px 200px,
+    linear-gradient(-45deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.05) 100%) 50px 50px / 200px 200px,
+    radial-gradient(ellipse at 70% 30%, rgba(255, 255, 255, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse at 30% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+
+  z-index: 0;
+  pointer-events: none;
+  animation: spaceRays 20s linear infinite, backgroundPulse 8s infinite alternate; /* Додаємо анімацію руху смуг */
+  background-blend-mode: overlay; /* Змішуємо з основним фоном */
+}
+
+
+@keyframes backgroundPulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes spaceRays {
+  0% {
+    background-position: 0 0, 50px 50px, 0 0, 0 0;
+  }
+  100% {
+    background-position: 200px 200px, 250px 250px, 0 0, 0 0; /* Змінюємо позиції для руху смуг */
+  }
+}
+
+/* Анімації для асинхронного миготіння зірок (залишаємо як є) */
+@keyframes twinkle1 {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes twinkle2 {
+  0%, 100% { opacity: 0.3; }
+  40% { opacity: 0.9; }
+  70% { opacity: 0.4; }
+}
+
+@keyframes twinkle3 {
+  0%, 100% { opacity: 0.4; }
+  60% { opacity: 1; }
+}
+
+@keyframes twinkle-stars-1 {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes twinkle-stars-2 {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes twinkle-stars-3 {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+/* Анімація руху для першого шару зірок */
+@keyframes floatStars1 {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 5% 5%; /* Зміщення фону для ілюзії руху */
+  }
 }
 
 .game-area {
   flex: 1;
   position: relative; /* Важливо для абсолютного позиціонування дітей */
   width: 100%;
-  height: calc(100vh - 70px); /* Зменшую висоту заголовка для більшого простору */
+  height: calc(100vh - 70px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1;
-  padding: 5px 20px 100px; /* Зменшуємо верхній відступ для близькості карт опонента до верху */
-  box-sizing: border-box; /* Включаємо padding у розрахунок розмірів */
-  overflow: hidden; /* Запобігає виходу елементів за межі контейнера */
+  z-index: 5; /* Піднімаємо над фоновими елементами */
+  padding: 5px 20px 100px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .modal-overlay {
@@ -245,6 +357,222 @@
   font-weight: bold;
 }
 
+/* Стилі для контейнера рухомих зірок */
+.moving-stars-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Дозволяє кліки проходити крізь контейнер */
+  overflow: hidden; /* Приховує зірки, що виходять за межі */
+  z-index: 0;
+}
+
+/* Стилі для окремої рухомої зірки */
+.moving-star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  /* Початкові позиція, розмір та opacity встановлюються інлайн */
+  /* Анімація встановлюється інлайн */
+}
+
+/* Анімація руху та зникнення зірки */
+@keyframes moveAndFadeStar {
+  0% {
+    transform: translate(0, 0);
+    opacity: var(--start-opacity); /* Використовуємо змінну */
+  }
+  100% {
+    transform: translate(var(--move-x), var(--move-y)); /* Використовуємо змінні */
+    opacity: 0; /* Зірка зникає в кінці анімації */
+  }
+}
+
+/* Зірки - Перший шар (тепер це :after) */
+/* Зірки - Перший шар */
+.game-page::after { /* Змінив селектор з ::after на ::before, оскільки ::before вже використовується для галактичних ефектів */
+  /* Весь код зірок переміщено до ::before */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 20% 70%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 30% 10%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 40% 80%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1px 1px at 50% 30%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 60% 90%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 70% 40%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 80% 10%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 90% 60%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 5% 50%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 25% 5%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 45% 95%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 65% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 85% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 15% 40%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 35% 85%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 55% 5%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 75% 35%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 95% 80%, #fff, rgba(0,0,0,0) 50%),
+
+    /* Додаткові зірки для більшої хаотичності */
+    radial-gradient(1.3px 1.3px at 7% 28%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 18% 78%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 28% 18%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 38% 88%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 48% 38%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 58% 98%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 68% 48%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.1px 2.1px at 78% 18%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 88% 68%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 3% 58%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 23% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 43% 85%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 63% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 83% 65%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.2px 2.2px at 13% 48%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 33% 95%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 53% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 73% 45%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 93% 88%, #fff, rgba(0,0,0,0) 50%),
+
+    /* Ще більше зірок для першого шару */
+    radial-gradient(1px 1px at 6% 35%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 16% 85%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 26% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 36% 95%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 46% 45%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 56% 5%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 66% 55%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.2px 2.2px at 76% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 86% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 96% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 1% 60%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 11% 10%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 21% 60%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 31% 90%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 41% 30%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 51% 80%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 61% 50%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.1px 2.1px at 71% 10%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 81% 60%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 91% 90%, #fff, rgba(0,0,0,0) 50%);
+  background-repeat: repeat;
+  background-size: 300px 300px;
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+  animation: twinkle-stars-1 4.5s ease-in-out infinite alternate;
+}
+
+/* Зірки - Другий шар (тепер це псевдоелемент ::before) */
+.game-page::before { /* Змінив селектор з ::before на ::after, оскільки ::after вже використовується для зірок */
+  /* Весь код зірок переміщено до ::after */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(1px 1px at 5% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 15% 65%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 25% 5%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 35% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1px 1px at 45% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 55% 85%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 65% 35%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 75% 5%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 85% 55%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 95% 10%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 10% 95%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 30% 45%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.2px 1.2px at 50% 80%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 70% 20%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 90% 70%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 5% 30%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 25% 90%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.1px 1.1px at 45% 40%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 65% 95%, #fff, rgba(0,0,0,0) 50%),
+
+    /* Додаткові зірки для більшої хаотичності на другому шарі */
+    radial-gradient(1.1px 1.1px at 12% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 22% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 32% 12%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 42% 82%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 52% 32%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 62% 92%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 72% 42%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.2px 2.2px at 82% 12%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 92% 62%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.8px 1.8px at 8% 52%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 28% 18%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.1px 2.1px at 48% 88%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 68% 28%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 88% 68%, #fff, rgba(0,0,0,0) 50%),
+
+    /* Ще більше зірок для другого шару */
+    radial-gradient(1.2px 1.2px at 9% 38%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 19% 88%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 29% 28%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 39% 98%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 49% 58%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 59% 8%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 69% 68%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.3px 2.3px at 79% 38%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 89% 88%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2px 2px at 99% 28%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.3px 1.3px at 4% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.7px 1.7px at 14% 25%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 24% 75%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.1px 2.1px at 34% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.4px 1.4px at 44% 65%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.9px 1.9px at 54% 15%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.6px 1.6px at 64% 65%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.2px 2.2px at 74% 35%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(1.5px 1.5px at 84% 85%, #fff, rgba(0,0,0,0) 50%),
+    radial-gradient(2.1px 2.1px at 94% 45%, #fff, rgba(0,0,0,0) 50%);
+  background-repeat: repeat;
+  background-size: 350px 350px;
+  opacity: 0.6;
+  z-index: 1;
+  pointer-events: none;
+  animation: twinkle-stars-2 6s ease-in-out infinite;
+}
+
+
+/* Світіння (додаємо новий псевдоелемент) */
+.game-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1; /* Поверх зірок, але під вмістом */
+  pointer-events: none;
+  background-image:
+    /* Світіння */
+    radial-gradient(circle at 20% 20%, rgba(67, 206, 162, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(201, 187, 112, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(24, 90, 157, 0.2) 0%, transparent 70%),
+    radial-gradient(circle at 10% 90%, rgba(138, 43, 226, 0.1) 0%, transparent 60%),
+    radial-gradient(circle at 90% 10%, rgba(223, 119, 78, 0.1) 0%, transparent 60%),
+    /* Світіння нижнього гравця */
+    radial-gradient(circle at 50% 120%, rgba(149, 199, 219, 0.25) 0%, transparent 45%),
+    /* Світіння верхнього гравця */
+    radial-gradient(circle at 50% -20%, rgba(149, 199, 219, 0.25) 0%, transparent 45%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  animation: backgroundPulse 8s infinite alternate;
+}
+
 /* FORTUNO Button */
 .fortuno-button-container {
   position: fixed;
@@ -389,3 +717,4 @@
     font-size: 1rem;
   }
 }
+
