@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://fortuno-backend.onrender.com/api/:path*"
+    }
+  ]
+} 

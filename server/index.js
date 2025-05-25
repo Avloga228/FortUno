@@ -9,9 +9,87 @@ const jwt = require('jsonwebtoken');
 const { generateDeck, shuffleDeck, dealCards } = require('../shared/gameLogic');
 const gameStates = {};
 
+// Завантажуємо змінні середовища
+require('dotenv').config();
+
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://fortuno-client.onrender.com', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
 app.use(express.json());
+
+// Підключення до MongoDB Atlas
+mongoose.connect(process.env.MONGO_URL, { 
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  family: 4,
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  retryWrites: true,
+  w: 'majority',
+  heartbeatFrequencyMS: 10000,
+  connectTimeoutMS: 30000
+})
+  .then(() => console.log('MongoDB Atlas підключено'))
+  .catch(err => console.error('Помилка підключення до MongoDB Atlas:', err));
+
+// Додаємо обробник подій підключення
+mongoose.connection.on('connected', () => {
+  console.log('Mongoose підключено до MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Помилка підключення Mongoose:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('Mongoose відключено від MongoDB');
+  // Спробуємо перепідключитися
+  setTimeout(() => {
+    mongoose.connect(process.env.MONGO_URL, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      family: 4,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      retryWrites: true,
+      w: 'majority',
+      heartbeatFrequencyMS: 10000,
+      connectTimeoutMS: 30000
+    }).catch(err => console.error('Помилка перепідключення:', err));
+  }, 5000);
+});
+
+// Обробка завершення процесу
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+// Схема користувача
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Схема кімнати зі зв'язком із користувачами
+const roomSchema = new mongoose.Schema({
+  roomId: { type: String, required: true, unique: true },
+  players: [{ type: String }],
+  createdAt: { type: Date, default: Date.now },
+  gameStarted: { type: Boolean, default: false }
+});
+
+const Room = mongoose.model('Room', roomSchema);
 
 // Helper function to save a document with retries for version conflicts
 async function saveWithRetry(document, maxRetries = 3) {
@@ -54,31 +132,7 @@ async function saveWithRetry(document, maxRetries = 3) {
 }
 
 // JWT Secret
-const JWT_SECRET = 'fortuno-secret-key';
-
-// Підключення до MongoDB
-mongoose.connect('mongodb://localhost:27017/fortuno', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB підключено'))
-  .catch(err => console.error('Помилка підключення до MongoDB:', err));
-
-// Схема користувача
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-
-// Схема кімнати зі зв'язком із користувачами
-const roomSchema = new mongoose.Schema({
-  roomId: { type: String, required: true, unique: true },
-  players: [{ type: String }],
-  createdAt: { type: Date, default: Date.now },
-  gameStarted: { type: Boolean, default: false }
-});
-
-const Room = mongoose.model('Room', roomSchema);
+const JWT_SECRET = process.env.JWT_SECRET || 'fortuno-secret-key';
 
 // Middleware для перевірки JWT токена
 const authenticate = async (req, res, next) => {
@@ -280,11 +334,22 @@ app.get('/api/rooms', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     credentials: true
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  allowUpgrades: true,
+  maxHttpBufferSize: 1e8,
+  path: '/socket.io/',
+  serveClient: false,
+  cookie: false,
+  upgradeTimeout: 30000,
+  allowEIO3: true
 });
 
 // Допоміжна функція для відправки оновленого стану гравців всім у кімнаті
@@ -2054,13 +2119,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Видаємо статичні файли React (після білду)
-app.use(express.static(path.join(__dirname, '../client/dist')));
-
-// SPA fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
+// Видаємо статичні файли React тільки в режимі розробки
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  // SPA fallback тільки в режимі розробки
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
@@ -2070,55 +2137,74 @@ server.listen(PORT, () => {
 // Add a cleanup function that runs periodically to check for and remove empty rooms
 setInterval(async () => {
   try {
+    // Перевіряємо з'єднання з базою даних
+    if (mongoose.connection.readyState !== 1) {
+      console.log('База даних не підключена, пропускаємо очистку');
+      return;
+    }
+
     // Check each room with disconnected players
     for (const [roomId, disconnectedSet] of disconnectedPlayers.entries()) {
-      const room = await Room.findOne({ roomId });
-      
-      if (!room) {
-        // Room no longer exists, clean up our tracking
-        disconnectedPlayers.delete(roomId);
-        continue;
-      }
-      
-      // If all players in the room are disconnected, delete it
-      if (disconnectedSet.size === room.players.length) {
-        console.log(`🧹 Очищення: Всі гравці (${room.players.length}) відключені з кімнати ${roomId}, видаляємо кімнату`);
-        await Room.deleteOne({ roomId });
-        disconnectedPlayers.delete(roomId);
-        delete gameStates[roomId];
-        console.log(`🗑️ Кімната ${roomId} видалена (плановий підчистка)`);
-      }
-    }
-    
-    // Also check for any waiting rooms with zero players (these should never exist, but just in case)
-    const emptyWaitingRooms = await Room.find({ 
-      gameStarted: false, 
-      players: { $size: 0 } 
-    });
-    
-    if (emptyWaitingRooms.length > 0) {
-      console.log(`🧹 Знайдено ${emptyWaitingRooms.length} порожніх кімнат очікування, видаляємо...`);
-      
-      for (const room of emptyWaitingRooms) {
-        await Room.deleteOne({ roomId: room.roomId });
-        console.log(`🗑️ Порожня кімната ${room.roomId} видалена`);
+      try {
+        const room = await Room.findOne({ roomId }).maxTimeMS(5000);
+        
+        if (!room) {
+          // Room no longer exists, clean up our tracking
+          disconnectedPlayers.delete(roomId);
+          continue;
+        }
+        
+        // If all players in the room are disconnected, delete it
+        if (disconnectedSet.size === room.players.length) {
+          console.log(`🧹 Очищення: Всі гравці (${room.players.length}) відключені з кімнати ${roomId}, видаляємо кімнату`);
+          await Room.deleteOne({ roomId }).maxTimeMS(5000);
+          disconnectedPlayers.delete(roomId);
+          delete gameStates[roomId];
+          console.log(`🗑️ Кімната ${roomId} видалена (плановий підчистка)`);
+        }
+      } catch (err) {
+        console.error(`Помилка при обробці кімнати ${roomId}:`, err);
+        continue; // Продовжуємо з наступною кімнатою
       }
     }
     
-    // Check for stale waiting rooms (old rooms that are likely abandoned)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
-    const staleWaitingRooms = await Room.find({
-      gameStarted: false,
-      createdAt: { $lt: oneHourAgo }
-    });
-    
-    if (staleWaitingRooms.length > 0) {
-      console.log(`🧹 Знайдено ${staleWaitingRooms.length} застарілих кімнат очікування, видаляємо...`);
+    // Also check for any waiting rooms with zero players
+    try {
+      const emptyWaitingRooms = await Room.find({ 
+        gameStarted: false, 
+        players: { $size: 0 } 
+      }).maxTimeMS(5000);
       
-      for (const room of staleWaitingRooms) {
-        await Room.deleteOne({ roomId: room.roomId });
-        console.log(`🗑️ Застаріла кімната ${room.roomId} видалена (створена ${room.createdAt})`);
+      if (emptyWaitingRooms.length > 0) {
+        console.log(`🧹 Знайдено ${emptyWaitingRooms.length} порожніх кімнат очікування, видаляємо...`);
+        
+        for (const room of emptyWaitingRooms) {
+          await Room.deleteOne({ roomId: room.roomId }).maxTimeMS(5000);
+          console.log(`🗑️ Порожня кімната ${room.roomId} видалена`);
+        }
       }
+    } catch (err) {
+      console.error('Помилка при перевірці порожніх кімнат:', err);
+    }
+    
+    // Check for stale waiting rooms
+    try {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const staleWaitingRooms = await Room.find({
+        gameStarted: false,
+        createdAt: { $lt: oneHourAgo }
+      }).maxTimeMS(5000);
+      
+      if (staleWaitingRooms.length > 0) {
+        console.log(`🧹 Знайдено ${staleWaitingRooms.length} застарілих кімнат очікування, видаляємо...`);
+        
+        for (const room of staleWaitingRooms) {
+          await Room.deleteOne({ roomId: room.roomId }).maxTimeMS(5000);
+          console.log(`🗑️ Застаріла кімната ${room.roomId} видалена (створена ${room.createdAt})`);
+        }
+      }
+    } catch (err) {
+      console.error('Помилка при перевірці застарілих кімнат:', err);
     }
   } catch (err) {
     console.error('Помилка під час планової очистки кімнат:', err);

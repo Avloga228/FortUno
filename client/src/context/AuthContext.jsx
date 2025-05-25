@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { socket } from '../socket';
+import { API_URL } from '../config';
 
 const AuthContext = createContext();
 
@@ -12,6 +13,8 @@ export const AuthProvider = ({ children }) => {
 
   // Only authenticate once when the app loads
   useEffect(() => {
+    console.log('AuthContext: Initializing with API_URL:', API_URL);
+    console.log('AuthContext: Window location:', window.location.hostname);
     // Check if user is already logged in
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('user');
@@ -25,12 +28,14 @@ export const AuthProvider = ({ children }) => {
         socket.authenticateOnce(token);
         
         // Verify token validity with server
-        fetch('http://localhost:5000/api/users/me', {
+        console.log('AuthContext: Verifying token with URL:', `${API_URL}/api/users/me`);
+        fetch(`${API_URL}/api/users/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
           .then(res => {
+            console.log('AuthContext: Token verification response status:', res.status);
             if (!res.ok) {
               throw new Error('Invalid token');
             }
@@ -60,15 +65,21 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, password) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      const url = `${API_URL}/api/users/register`;
+      console.log('AuthContext: Registering with URL:', url);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        mode: 'cors',
+        credentials: 'include',
         body: JSON.stringify({ username, password })
       });
 
+      console.log('AuthContext: Register response status:', response.status);
       const data = await response.json();
+      console.log('AuthContext: Register response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Помилка реєстрації');
@@ -86,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       
       return data;
     } catch (err) {
+      console.error('Register error:', err);
       setError(err.message);
       throw err;
     }
@@ -94,15 +106,21 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:5000/api/users/login', {
+      const url = `${API_URL}/api/users/login`;
+      console.log('AuthContext: Logging in with URL:', url);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        mode: 'cors',
+        credentials: 'include',
         body: JSON.stringify({ username, password })
       });
 
+      console.log('AuthContext: Login response status:', response.status);
       const data = await response.json();
+      console.log('AuthContext: Login response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Помилка входу');
@@ -120,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       
       return data;
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message);
       throw err;
     }

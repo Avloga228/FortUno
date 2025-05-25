@@ -4,6 +4,7 @@ import { socket } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "../components/AuthModal";
 import { toast } from "react-hot-toast";
+import { API_URL } from "../config";
 
 // Імпортуємо компоненти
 import GameTable from "../components/GameTable";
@@ -540,7 +541,7 @@ export default function RoomPage() {
     // Перевіряємо, чи існує кімната
     const checkRoomExists = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/rooms/${roomId}`);
+        const response = await fetch(`${API_URL}/api/rooms/${roomId}`);
         const data = await response.json();
         
         if (!data.exists) {
