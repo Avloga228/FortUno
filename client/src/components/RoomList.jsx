@@ -11,6 +11,11 @@ const RoomList = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // New state for filters and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('none');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   useEffect(() => {
     if (isOpen) {
       fetchRooms();
@@ -32,6 +37,48 @@ const RoomList = ({ isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter and sort rooms
+  const getFilteredAndSortedRooms = () => {
+    let filteredRooms = [...rooms];
+
+    // Apply search filter
+    if (searchQuery) {
+      filteredRooms = filteredRooms.filter(room => 
+        room.roomId.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filteredRooms = filteredRooms.filter(room => {
+        switch (statusFilter) {
+          case 'available':
+            return !room.gameStarted;
+          case 'active':
+            return room.gameStarted;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply sorting
+    if (sortBy !== 'none') {
+      filteredRooms.sort((a, b) => {
+        switch (sortBy) {
+          case 'players-asc':
+            return a.playerCount - b.playerCount;
+          case 'players-desc':
+            return b.playerCount - a.playerCount;
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filteredRooms;
   };
 
   const handleJoinRoom = (room) => {
@@ -87,13 +134,52 @@ const RoomList = ({ isOpen, onClose }) => {
           <button className="refresh-btn" onClick={handleRefresh}>Оновити</button>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
+
+        {/* Search and filter controls */}
+        <div className="room-list-controls">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Пошук за кодом кімнати..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
+          <div className="filter-controls">
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="status-filter"
+            >
+              <option value="all">Всі ігри</option>
+              <option value="available">Доступні</option>
+              <option value="active">Активні</option>
+            </select>
+
+            <select 
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="sort-by"
+            >
+              <option value="none">Без сортування</option>
+              <option value="players-asc">Гравці ↑</option>
+              <option value="players-desc">Гравці ↓</option>
+            </select>
+          </div>
+        </div>
         
         {loading ? (
           <div className="loading">Завантаження...</div>
         ) : error ? (
           <div className="error">{error}</div>
-        ) : rooms.length === 0 ? (
-          <div className="no-rooms">Немає доступних ігор</div>
+        ) : getFilteredAndSortedRooms().length === 0 ? (
+          <div className="no-rooms">
+            {searchQuery || statusFilter !== 'all' 
+              ? 'Немає ігор, що відповідають критеріям пошуку' 
+              : 'Немає доступних ігор'}
+          </div>
         ) : (
           <div className="rooms-container">
             <table className="rooms-table">
@@ -106,7 +192,7 @@ const RoomList = ({ isOpen, onClose }) => {
                 </tr>
               </thead>
               <tbody>
-                {rooms.map((room) => (
+                {getFilteredAndSortedRooms().map((room) => (
                   <tr key={room.roomId} className={room.gameStarted ? 'game-started' : ''}>
                     <td>{room.roomId}</td>
                     <td>{room.playerCount} / 4</td>

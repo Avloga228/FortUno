@@ -1,0 +1,51 @@
+.fortuno-button-container {
+  position: fixed;
+  z-index: 1000;
+  animation: fortunoAppear 0.5s ease-out;
+}
+
+.fortuno-button {
+  padding: 15px 30px;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.fortuno-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.fortuno-button:active {
+  transform: scale(0.95);
+}
+
+@keyframes fortunoAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .fortuno-button {
+    padding: 12px 24px;
+    font-size: 20px;
+  }
+} 

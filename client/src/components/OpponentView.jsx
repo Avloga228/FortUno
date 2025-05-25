@@ -15,21 +15,28 @@ const OpponentView = ({ player, position, isCurrentTurn, totalPlayers }) => {
       return "opponent-top";
     }
     
-    // Для випадку, коли є 1 опонент
+    // Для випадку, коли є 1 опонент (2 гравці)
     if (totalPlayers === 2) {
       return "opponent-top";
     }
     
-    // Для випадку, коли є 2 опоненти
+    // Для випадку, коли є 2 опоненти (3 гравці)
     if (totalPlayers === 3) {
-      return position === 1 ? "opponent-left" : "opponent-right";
+      switch (position) {
+        case 1: return "opponent-left";  // Перший опонент зліва
+        case 2: return "opponent-top";   // Другий опонент зверху
+        default: return "opponent-top";
+      }
     }
     
-    // Для випадку, коли є 3 опоненти
+    // Для випадку, коли є 3 опоненти (4 гравці)
     if (totalPlayers === 4) {
-      if (position === 1) return "opponent-left";
-      if (position === 2) return "opponent-top";
-      if (position === 3) return "opponent-right";
+      switch (position) {
+        case 1: return "opponent-left";  // Перший опонент зліва
+        case 2: return "opponent-top";   // Другий опонент зверху
+        case 3: return "opponent-right"; // Третій опонент справа
+        default: return "opponent-top";
+      }
     }
     
     return "opponent-top"; // За замовчуванням
