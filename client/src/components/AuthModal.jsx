@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 import './AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, onSuccess }) => {
@@ -21,11 +22,14 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
     }
     
     setLoading(true);
+    console.log('AuthModal: Attempting', mode, 'with API_URL:', API_URL);
     
     try {
       if (mode === 'login') {
+        console.log('AuthModal: Calling login function');
         await login(username, password);
       } else {
+        console.log('AuthModal: Calling register function');
         await register(username, password);
       }
       // Close modal on success
@@ -35,6 +39,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }) => {
         onSuccess();
       }
     } catch (err) {
+      console.error('AuthModal: Error during', mode, ':', err);
       setError(err.message);
     } finally {
       setLoading(false);

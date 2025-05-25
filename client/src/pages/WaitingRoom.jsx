@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { socket } from "../socket";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../config";
 import "./WaitingRoom.css";
 
 export default function WaitingRoom() {
@@ -18,7 +19,7 @@ export default function WaitingRoom() {
     // Check if room exists
     const checkRoomExists = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/rooms/${roomId}`);
+        const response = await fetch(`${API_URL}/api/rooms/${roomId}`);
         const data = await response.json();
         
         if (!data.exists) {

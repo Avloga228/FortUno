@@ -14,9 +14,9 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://fortuno.vercel.app', 'https://fortuno-client.vercel.app']
-    : 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 app.use(express.json());
@@ -331,9 +331,7 @@ app.get('/api/rooms', async (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://fortuno.vercel.app', 'https://fortuno-client.vercel.app']
-      : 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://fortuno.vercel.app', 'https://fortuno-client.vercel.app'],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -343,13 +341,10 @@ const io = new Server(server, {
   connectTimeout: 45000,
   allowUpgrades: true,
   maxHttpBufferSize: 1e8,
-  // Додаємо налаштування для кращої підтримки WebSocket
   path: '/socket.io/',
   serveClient: false,
   cookie: false,
-  // Додаємо налаштування для автоматичного переключення транспорту
   upgradeTimeout: 30000,
-  // Додаємо налаштування для кращої обробки помилок
   allowEIO3: true
 });
 

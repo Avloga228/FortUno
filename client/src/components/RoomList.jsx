@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
+import { API_URL } from '../config';
 import './RoomList.css';
 
 const RoomList = ({ isOpen, onClose }) => {
@@ -25,7 +26,7 @@ const RoomList = ({ isOpen, onClose }) => {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/rooms');
+      const response = await fetch(`${API_URL}/api/rooms`);
       const data = await response.json();
       
       if (data.rooms) {

@@ -1,8 +1,14 @@
 // API URL configuration
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === 'true';
+console.log('Window location:', window.location.hostname);
+console.log('Is development:', isDevelopment);
+
 export const API_URL = isDevelopment 
   ? 'http://localhost:5000'
   : 'https://fortuno-server.onrender.com';
+
+console.log('Current environment:', isDevelopment ? 'development' : 'production');
+console.log('API URL:', API_URL);
 
 // Game configuration
 export const GAME_CONFIG = {

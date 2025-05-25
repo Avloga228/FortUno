@@ -6,6 +6,7 @@ import RoomList from "../components/RoomList";
 import RulesModal from "../components/RulesModal";
 import { useAuth } from "../context/AuthContext";
 import { socket } from "../socket";
+import { API_URL } from "../config";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function HomePage() {
       
       // Include auth token in request
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/rooms', {
+      const response = await fetch(`${API_URL}/api/rooms`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
