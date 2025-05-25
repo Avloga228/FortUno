@@ -52,7 +52,7 @@
 }
 
 .room-id {
-  color: #ff6f61;
+  color: rgba(61, 156, 233, 0.8);
   font-size: 1.4rem;
   letter-spacing: 1px;
   margin-left: 8px;
@@ -70,7 +70,7 @@
   font-size: 0.85rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
-  background: linear-gradient(135deg, rgba(61, 156, 233, 0.8) 0%, rgba(61, 156, 233, 0.8) 100%);
+  background: rgba(61, 156, 233, 0.8);
   box-shadow: 0 0 10px rgba(67, 185, 206, 0.5);
 }
 
@@ -83,15 +83,15 @@
 }
 
 .your-turn {
-  color: #4caf50;
-  background: rgba(76, 175, 80, 0.2);
+  color: rgba(61, 156, 233, 0.8);
+  background: rgba(61, 156, 233, 0.2);
   padding: 6px 12px;
   border-radius: 20px;
 }
 
 .opponent-turn {
-  color: #f44336;
-  background: rgba(244, 67, 54, 0.2);
+  color: rgba(252, 194, 124, 0.9);
+  background: rgba(252, 194, 124, 0.2);
   padding: 6px 12px;
   border-radius: 20px;
 }
@@ -162,14 +162,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
   font-size: 0.85rem;
-  background: linear-gradient(135deg, rgba(252, 194, 124, 0.9) 0%, rgba(252, 194, 124, 0.9) 100%);
+  background: rgba(252, 194, 124, 0.9);
   box-shadow: 0 0 10px rgba(223, 119, 78, 0.6);
 }
 
 .leave-game-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(135deg, rgb(248, 181, 99) 0%, rgba(252, 194, 124, 1) 100%);
+  background: rgb(248, 181, 99);
   box-shadow: 0 0 15px rgba(223, 119, 78, 0.8);
 }
 
