@@ -337,7 +337,12 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  allowUpgrades: true,
+  maxHttpBufferSize: 1e8
 });
 
 // Допоміжна функція для відправки оновленого стану гравців всім у кімнаті

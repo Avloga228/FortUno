@@ -1,5 +1,17 @@
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://fortuno.onrender.com'
-  : 'http://localhost:5000';
+// API URL configuration
+const isDevelopment = process.env.NODE_ENV === 'development';
+export const API_URL = isDevelopment 
+  ? 'http://localhost:5000'
+  : 'https://fortuno-server.onrender.com';
 
-export default API_URL; 
+// Game configuration
+export const GAME_CONFIG = {
+  minPlayers: 2,
+  maxPlayers: 4,
+  initialCards: 7,
+  maxMessageLength: 200,
+  reconnectionTimeout: 30000,
+  gameStartDelay: 3000,
+  turnTimeout: 30000,
+  fortunoTimeout: 10000
+}; 
